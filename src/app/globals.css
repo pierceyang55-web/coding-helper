@@ -1,0 +1,160 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ theme -- */
+@theme {
+  --color-ink-950: #0a0b0f;
+  --color-ink-900: #101218;
+  --color-ink-850: #161922;
+  --color-ink-800: #1c2029;
+  --color-ink-700: #282d3a;
+  --color-ink-600: #3a4152;
+  --color-ink-400: #7c869c;
+  --color-ink-300: #a3accd;
+  --color-ink-100: #e6e9f5;
+
+  --color-accent-fast: #38bdf8;
+  --color-accent-medium: #a78bfa;
+  --color-accent-fine: #fb923c;
+
+  --animate-pulse-bar: pulse-bar 1.4s ease-in-out infinite;
+
+  @keyframes pulse-bar {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ base -- */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-950 text-ink-100 antialiased;
+  background-image:
+    radial-gradient(60rem 40rem at 15% -10%, rgba(56, 189, 248, 0.07), transparent 60%),
+    radial-gradient(50rem 35rem at 90% 0%, rgba(251, 146, 60, 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* ----------------------------------------------------------------- prose -- */
+.prose-helper {
+  @apply text-[15px] leading-relaxed text-ink-100;
+}
+.prose-helper h2 {
+  @apply mt-7 mb-2 text-xs font-semibold tracking-[0.14em] text-ink-400 uppercase first:mt-0;
+}
+.prose-helper h3 {
+  @apply mt-5 mb-1 text-sm font-semibold text-ink-100;
+}
+.prose-helper p {
+  @apply my-3;
+}
+.prose-helper ul {
+  @apply my-3 list-disc space-y-1.5 pl-5 marker:text-ink-600;
+}
+.prose-helper ol {
+  @apply my-3 list-decimal space-y-1.5 pl-5 marker:text-ink-600;
+}
+.prose-helper a {
+  @apply text-accent-fast underline underline-offset-2;
+}
+.prose-helper strong {
+  @apply font-semibold text-white;
+}
+.prose-helper table {
+  @apply my-4 w-full border-collapse text-sm;
+}
+.prose-helper th,
+.prose-helper td {
+  @apply border border-ink-700 px-3 py-1.5 text-left;
+}
+.prose-helper :not(pre) > code {
+  @apply rounded bg-ink-800 px-1.5 py-0.5 font-mono text-[13px] text-ink-100;
+}
+.prose-helper pre {
+  @apply my-0 overflow-x-auto rounded-xl bg-[#0b0d13] p-4 font-mono text-[13px] leading-[1.65];
+}
+.prose-helper pre code {
+  @apply bg-transparent p-0 text-[13px];
+}
+.prose-helper hr {
+  @apply my-6 border-ink-700;
+}
+
+/* ---------------------------------------------------- highlight.js theme -- */
+.hljs-comment,
+.hljs-quote {
+  color: #5b6478;
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: #c792ea;
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: #a5e075;
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: #f78c6c;
+}
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-title.function_ {
+  color: #82aaff;
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable {
+  color: #ffcb6b;
+}
+.hljs-built_in,
+.hljs-class .hljs-title {
+  color: #89ddff;
+}
+.hljs-deletion {
+  color: #ff5370;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------- scrollbar -- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2b3140;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4152;
+  background-clip: content-box;
+}

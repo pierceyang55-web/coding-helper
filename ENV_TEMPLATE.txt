@@ -1,0 +1,15 @@
+# ---- Anthropic ----
+# https://console.anthropic.com/settings/keys
+ANTHROPIC_API_KEY=sk-ant-...
+
+# ---- Supabase ----
+# Supabase dashboard -> Project Settings -> API
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
+
+# Service role key: server-only, never exposed to the browser.
+# Used so the solver route can read the uploaded photo from private storage.
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
+
+# Base URL used for auth redirects. Set to your deployed URL in production.
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
