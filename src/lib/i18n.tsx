@@ -49,7 +49,7 @@ const EN = {
 
   'panel.emptyTitle': 'No problem captured yet',
   'panel.emptyBody':
-    'Add a photo of a question on your phone. Both modes start at once and land here on every device you are signed in on.',
+    'Add a photo of a question on your phone. Medium starts straight away and the answer lands here on every device you are signed in on.',
   'panel.queued': 'Queued',
   'panel.onDemandBody':
     '{mode} runs on the most capable model and costs several times a Medium pass, so it only runs when you ask.',
@@ -69,8 +69,8 @@ const EN = {
   'tabs.queued': 'queued',
   'tabs.failed': 'failed',
 
-  'mode.medium.tagline': 'Explained solution in ~30s',
-  'mode.fine.tagline': 'Deep analysis · no time limit',
+  'mode.medium.tagline': 'Insight, approach, code · runs on upload',
+  'mode.fine.tagline': 'Deep analysis · on demand',
 
   'locale.switch': '中文',
 } as const;
@@ -115,7 +115,7 @@ const ZH: Record<StringKey, string> = {
 
   'panel.emptyTitle': '尚未拍攝任何題目',
   'panel.emptyBody':
-    '用手機拍下題目。兩個模式會同時開始，結果會出現在你所有已登入的裝置上。',
+    '用手機拍下題目。Medium 會立刻開始，結果會出現在你所有已登入的裝置上。',
   'panel.queued': '排隊中',
   'panel.onDemandBody': '{mode} 使用最強的模型，費用是 Medium 的好幾倍，所以只在你要求時才會跑。',
   'panel.startMode': '執行 {mode}',
@@ -134,8 +134,8 @@ const ZH: Record<StringKey, string> = {
   'tabs.queued': '排隊中',
   'tabs.failed': '失敗',
 
-  'mode.medium.tagline': '約 30 秒，附解說',
-  'mode.fine.tagline': '深入分析 · 不限時',
+  'mode.medium.tagline': '思路、解法、程式碼 · 上傳即跑',
+  'mode.fine.tagline': '深入分析 · 手動啟動',
 
   'locale.switch': 'EN',
 };

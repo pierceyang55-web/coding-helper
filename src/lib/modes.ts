@@ -29,6 +29,7 @@ Keep every one of the following in English — never translate them:
   and variable names such as s or nums.
 - Standard interview vocabulary: edge case, invariant, brute force, in-place, overflow,
   greedy, DP / dynamic programming, stack, queue, hash map.
+- The whole of the "## English summary" section, which is English under every locale.
 
 The first time you introduce an English term you may gloss it once in brackets — for
 example "monotonic stack（單調堆疊）" — and then use the English alone from then on.
@@ -38,7 +39,6 @@ Do not produce a Chinese-only sentence where the key technical noun has been tra
 export interface ModeConfig {
   key: Mode;
   label: string;
-  tagline: string;
   /** Hard wall-clock ceiling, ms. The stream is cut here and whatever arrived is kept. */
   budgetMs: number;
   model: string;
@@ -71,13 +71,51 @@ TITLE: <the problem's name, or a 3-6 word description if untitled>
 
 Never wrap your entire answer in one big code fence. Use fenced code blocks only for code.`;
 
+/**
+ * The interview format: read the problem, name the brute force, name the one
+ * insight, lay out the algorithm, then a spoken English recap and the code.
+ *
+ * The sentence caps are the point of the shape, not decoration — without them
+ * the model pads those sections, and the padding is billed at the output rate.
+ */
+const INTERVIEW_FORMAT = (language: string) => `Use these markdown headings, in this order, and write nothing outside them:
+
+## Problem
+Two or three lines: what is being asked, plus the constraints visible in the photo.
+
+## Brute force
+The obvious solution, in AT MOST TWO SENTENCES, then one line of the exact form
+\`Time: O(...) · Space: O(...)\` for it. Say in the second sentence why it fails the
+given constraints. Do not write code here.
+
+## Instinct
+AT MOST TWO SENTENCES. The single observation that makes the optimal solution possible —
+what you would notice in the first thirty seconds of the interview and say out loud. Name
+the data structure or technique it points to. No restatement of the problem.
+
+## Approach
+The algorithm in 3-6 numbered steps, each one line. End with one line of the exact form
+\`Time: O(...) · Space: O(...)\` for this approach, followed by a short clause justifying
+each of the two bounds.
+
+## English summary
+AT MOST THREE SENTENCES, in English, always — this section is never translated. This is the
+script the reader says out loud in the interview: the insight, the algorithm, the
+complexity. Plain spoken English, no markdown, no code, no bullet points.
+
+## Solution
+One fenced ${language} code block, and nothing else in this section. Clean, idiomatic,
+interview-ready, using the standard class/method signature for the problem. Comment only
+the non-obvious steps.
+
+Respect every sentence cap. A section that runs long is worse than one that is too short.`;
+
 export const MODES: Record<Mode, ModeConfig> = {
   // -------------------------------------------------------------- MEDIUM ----
   medium: {
     key: 'medium',
     label: 'Medium',
-    tagline: 'Explained solution in ~30s',
-    budgetMs: 30_000,
+    budgetMs: 60_000,
     model: 'claude-sonnet-5',
     maxTokens: 8_000,
     thinking: true,
@@ -87,37 +125,17 @@ export const MODES: Record<Mode, ModeConfig> = {
     ring: 'ring-accent-medium/40 bg-accent-medium/10',
     systemPrompt: (language) => `${BASE_RULES}
 
-MODE: MEDIUM. You have about 30 seconds. Aim for a solution the user could confidently
-explain out loud in an interview.
+MODE: MEDIUM. The answer the reader takes into the interview. Think it through before you
+write: the Instinct must be the real one, and the Solution must be correct against every
+constraint visible in the photo.
 
-Structure your answer with these markdown headings, in order:
-
-## Problem
-Two or three lines: what is being asked, plus the constraints you can see in the photo.
-
-## Approach
-The key insight, then the algorithm in 3-6 numbered steps. Say why the naive approach is
-too slow and what the optimal idea buys you.
-
-## Solution
-One fenced ${language} code block. Clean, idiomatic, interview-ready, lightly commented at
-the non-obvious steps.
-
-## Complexity
-\`Time: O(...) · Space: O(...)\` followed by one line justifying each.
-
-## Edge cases
-Three to five bullets — empty input, single element, duplicates, overflow, and anything
-specific to this problem.
-
-Keep the whole answer tight. Depth over padding.`,
+${INTERVIEW_FORMAT(language)}`,
   },
 
   // ---------------------------------------------------------------- FINE ----
   fine: {
     key: 'fine',
     label: 'Fine',
-    tagline: 'Deep analysis · no time limit',
     budgetMs: 240_000,
     model: 'claude-opus-5',
     maxTokens: 16_000,
@@ -141,13 +159,18 @@ missing or unreadable. Work through one of the photo's examples by hand.
 The obvious solution and its complexity, in a few lines of pseudocode. State exactly why
 it fails the given constraints (do the arithmetic: n = 10^5 means ~10^10 ops).
 
-## Key insight
+## Instinct
 The single observation that unlocks the optimal solution. This is the most important
 paragraph in your answer — make it land.
 
-## Optimal approach
+## Approach
 The algorithm, step by step. Include a correctness argument: the loop invariant, the
 exchange argument, or the induction that shows it's right. Not just "this works".
+
+## English summary
+AT MOST THREE SENTENCES, in English, always — this section is never translated. The script
+the reader says out loud in the interview: the insight, the algorithm, the complexity.
+Plain spoken English, no markdown, no code.
 
 ## Solution
 One fenced ${language} code block. Production quality: meaningful names, correct edge-case
@@ -178,8 +201,8 @@ export const DEFAULT_MODE: Mode = 'medium';
 
 /**
  * Modes that fire automatically on upload. Fine is left out on purpose: it runs
- * on Opus at high effort and costs roughly 6x a Medium pass — about 80% of the
- * bill when all of them run. You start it from the tab when you want it.
+ * on Opus at high effort and costs roughly six times a Medium pass — about 80%
+ * of the bill when both run. You start it from its tab when you want it.
  */
 export const AUTO_MODES: Mode[] = ['medium'];
 
@@ -201,8 +224,8 @@ export function costOf(model: string | null, inputTokens: number, outputTokens: 
 
 /**
  * Rough cost before a pass runs, for the button that starts it. Measured on a
- * real 1600px problem photo: ~5.8k input tokens either way; output is what
- * separates the modes (Fine's high effort spends most of it on thinking).
+ * real 1600px problem photo: ~5.9k input tokens whichever mode runs; output is
+ * what separates them (Fine's high effort spends most of it on thinking).
  */
 export const TYPICAL_COST: Record<Mode, number> = {
   medium: 0.023,
