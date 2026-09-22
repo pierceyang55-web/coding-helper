@@ -22,7 +22,7 @@ it until you press the button, because it costs roughly six times as much (see *
 
 | Tab | Model | Ceiling | Starts | What you get |
 |---|---|---|---|---|
-| **Medium** | `claude-sonnet-5` | 30s hard cut | automatically | Problem, approach, code, complexity, edge cases. Interview-ready. |
+| **Medium** | `claude-sonnet-5` | 60s hard cut | automatically | Problem, brute force, instinct, approach, a spoken English recap, code. |
 | **Fine** | `claude-opus-5` | 4 min | on demand | Brute force, key insight, correctness argument, code, test cases, follow-ups. |
 
 The ceilings are enforced server-side with an `AbortController`. If a pass hits its limit,
@@ -30,6 +30,20 @@ whatever streamed so far is kept and the tab is marked ⏱ rather than thrown aw
 
 Each finished pass reports what it actually cost, from the token counts the API returned —
 so the number under the answer is measured, not estimated.
+
+Medium's headings follow the shape of the interview rather than of a write-up:
+
+```
+## Problem            what is being asked, plus the visible constraints
+## Brute force        2 sentences max, with its own Time/Space, and why it fails
+## Instinct           2 sentences max — the observation you'd say in the first 30s
+## Approach           3-6 numbered steps, ending in Time/Space
+## English summary    3 sentences max, English under every locale — the spoken script
+## Solution           the code, and nothing else
+```
+
+The sentence caps are load bearing. Without them the model pads those sections, and padding
+is billed at the output rate.
 
 ## Photos and languages
 
