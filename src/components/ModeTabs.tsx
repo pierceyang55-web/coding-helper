@@ -1,6 +1,7 @@
 'use client';
 
-import { MODES, MODE_ORDER } from '@/lib/modes';
+import { AUTO_MODES, MODES, MODE_ORDER, TYPICAL_COST, formatCost } from '@/lib/modes';
+import { useI18n } from '@/lib/i18n';
 import type { Mode, Result } from '@/lib/types';
 
 interface Props {
@@ -18,12 +19,21 @@ function elapsedFor(r: Result | undefined, now: number): number | null {
   return null;
 }
 
-function StatusChip({ r, now }: { r: Result | undefined; now: number }) {
+function StatusChip({ r, mode, now }: { r: Result | undefined; mode: Mode; now: number }) {
+  const { t } = useI18n();
   const ms = elapsedFor(r, now);
   const secs = ms == null ? null : (ms / 1000).toFixed(1);
 
-  if (!r || r.status === 'queued')
-    return <span className="text-[11px] tabular-nums text-ink-600">queued</span>;
+  if (!r || r.status === 'queued') {
+    // For a mode that waits to be asked, the price is the useful thing to show.
+    if (!AUTO_MODES.includes(mode))
+      return (
+        <span className="text-[11px] tabular-nums text-ink-500">
+          ~{formatCost(TYPICAL_COST[mode])}
+        </span>
+      );
+    return <span className="text-[11px] tabular-nums text-ink-600">{t('tabs.queued')}</span>;
+  }
 
   if (r.status === 'streaming')
     return (
@@ -43,10 +53,12 @@ function StatusChip({ r, now }: { r: Result | undefined; now: number }) {
       </span>
     );
 
-  return <span className="text-[11px] text-red-400">failed</span>;
+  return <span className="text-[11px] text-red-400">{t('tabs.failed')}</span>;
 }
 
 export default function ModeTabs({ results, active, onChange, now }: Props) {
+  const { t } = useI18n();
+
   return (
     <div className="flex gap-1 rounded-2xl border border-ink-800 bg-ink-900/60 p-1 backdrop-blur">
       {MODE_ORDER.map((mode) => {
@@ -77,10 +89,10 @@ export default function ModeTabs({ results, active, onChange, now }: Props) {
               >
                 {cfg.label}
               </span>
-              <StatusChip r={r} now={now} />
+              <StatusChip r={r} mode={mode} now={now} />
             </div>
             <p className="mt-0.5 hidden truncate text-[11px] text-ink-600 sm:block">
-              {cfg.tagline}
+              {t(mode === 'fine' ? 'mode.fine.tagline' : 'mode.medium.tagline')}
             </p>
 
             {pct != null && (

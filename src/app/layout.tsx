@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { LocaleProvider } from '@/lib/i18n';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,8 +16,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    // `lang` is updated on the client when the locale changes; zh-TW is the
+    // default so the server render and the first paint always agree.
+    <html lang="zh-TW">
+      <body>
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

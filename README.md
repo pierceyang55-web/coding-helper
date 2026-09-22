@@ -1,11 +1,11 @@
 # Coding Helper
 
-Photograph a LeetCode-style question on your phone. Three solutions start at once and stream
+Photograph a LeetCode-style question on your phone. The answer streams
 live to **every device signed into the same account** — your phone, your laptop, a second
 monitor, whatever's open.
 
 ```
- phone camera ──▶ Supabase Storage ──▶ /api/solve ×3 ──▶ Claude
+ phone camera ──▶ Supabase Storage ──▶ /api/solve ──▶ Claude
                         │                    │
                         └──── Postgres ◀─────┘
                                  │
@@ -15,19 +15,32 @@ monitor, whatever's open.
               phone                           desktop
 ```
 
-## The three modes
+## The two modes
 
-All three fire the moment you upload. You switch between them with tabs while they're still
-running — Fast is usually readable before you've put your phone down.
+**Medium** runs the moment you upload. **Fine** does not — it sits on its tab with a price on
+it until you press the button, because it costs roughly six times as much (see *Cost* below).
 
-| Tab | Model | Ceiling | What you get |
-|---|---|---|---|
-| **Fast** | `claude-haiku-4-5` | 10s hard cut | Approach in one line, optimal code, complexity. Nothing else. |
-| **Medium** | `claude-sonnet-5` | 30s hard cut | Problem, approach, code, complexity, edge cases. Interview-ready. |
-| **Fine** | `claude-opus-5` | 4 min | Brute force, key insight, correctness argument, code, test cases, follow-ups. |
+| Tab | Model | Ceiling | Starts | What you get |
+|---|---|---|---|---|
+| **Medium** | `claude-sonnet-5` | 30s hard cut | automatically | Problem, approach, code, complexity, edge cases. Interview-ready. |
+| **Fine** | `claude-opus-5` | 4 min | on demand | Brute force, key insight, correctness argument, code, test cases, follow-ups. |
 
 The ceilings are enforced server-side with an `AbortController`. If a pass hits its limit,
 whatever streamed so far is kept and the tab is marked ⏱ rather than thrown away.
+
+Each finished pass reports what it actually cost, from the token counts the API returned —
+so the number under the answer is measured, not estimated.
+
+## Photos and languages
+
+One problem can carry up to six photos: shoot a long question across several screens and they
+are read together, in order, as one statement.
+
+The interface is in Traditional Chinese or English, switchable in the header. That switch is a
+static string table — it costs nothing. The *answer* language is fixed per submission at upload
+time: in Chinese mode the model writes its explanation in Chinese but keeps every algorithm
+name, complexity bound, heading and identifier in English, because that is the vocabulary an
+English-language interview is conducted in.
 
 Tuning lives in one file: **`src/lib/modes.ts`** — models, time budgets, effort levels and the
 prompts are all there.
@@ -52,7 +65,8 @@ npm install
 ### 2. Create the Supabase backend
 
 1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard).
-2. Open **SQL Editor** and run these as **three separate queries**, in order:
+2. Open **SQL Editor** and run these as **three separate queries**, in order (on an existing
+   project, run `supabase/migrate.sql` too):
    - `supabase/schema.sql` — tables, row-level security, realtime publication
    - `supabase/storage.sql` — the private `problems` bucket and its access policies
    - `supabase/verify.sql` — a seven-row checklist; every row should say PASS
@@ -122,7 +136,7 @@ and add it to your home screen.
 
 > **Function timeout.** Fine mode can run for minutes. Vercel's default per-function limit is
 > shorter than that on some plans — the route already declares `maxDuration = 300`, but check
-> **Settings → Functions** and raise the limit if Fine mode gets cut short. Fast and Medium are
+> **Settings → Functions** and raise the limit if Fine mode gets cut short. Medium is
 > unaffected.
 
 **Or test over your LAN** — quicker, but only at home:
@@ -155,13 +169,15 @@ problems.
 
 ```
 proxy.ts                     Session refresh + route protection (Next 16 renamed middleware → proxy)
-supabase/schema.sql          Tables, RLS, realtime, storage bucket
-src/lib/modes.ts             ⭐ Models, time budgets, effort, prompts — tune here
+supabase/schema.sql          Tables, RLS, realtime (fresh projects)
+supabase/migrate.sql         Run this on an existing project before deploying
+src/lib/modes.ts             ⭐ Models, budgets, prompts, prices, AUTO_MODES — tune here
+src/lib/i18n.tsx             Interface strings, zh-TW / en
 src/lib/supabase/            Browser / server / service-role clients
 src/lib/image.ts             Client-side photo compression (1600px JPEG)
 src/app/api/solve/route.ts   Vision call, streaming, throttled DB writes, timeout enforcement
 src/components/Workspace.tsx Realtime subscriptions, upload flow, layout
-src/components/ModeTabs.tsx  The three tabs with live timers
+src/components/ModeTabs.tsx  The tabs, with live timers and prices
 src/components/ResultPanel.tsx  Streaming markdown + copy-able code
 ```
 
@@ -169,10 +185,26 @@ src/components/ResultPanel.tsx  Streaming markdown + copy-able code
 
 ## Cost
 
-Every upload runs all three models. Roughly: Fast is negligible, Medium is a few cents, Fine is
-the expensive one. If that's more than you want per photo, the cheapest change is in
-`Workspace.tsx` — drop `MODE_ORDER` from the kick-off loop to `['fast', 'medium']` and let the
-`↻` button start Fine on demand only.
+Measured on a real 1600px photo of a LeetCode problem:
+
+```
+system prompt     1,076 tokens
+photo             4,743 tokens   ← 81% of the input
+──────────────────────────────
+input             5,848 tokens  →  $0.012   (Sonnet, $2/MTok)
+output            1,162 tokens  →  $0.012   (         $10/MTok)
+Medium, one pass                   $0.023
+```
+
+The photo dominates the *input*, but input is cheap. What costs money is **output**, and Fine
+spends most of its output on thinking tokens — which are billed at the output rate — on a model
+that charges $25/MTok. One Fine pass is roughly $0.15, about six Mediums.
+
+That is why only Medium starts by itself: an upload costs ~$0.02 instead of ~$0.18. Press the
+Fine button on the problems that deserve it.
+
+`AUTO_MODES` in `src/lib/modes.ts` controls which modes fire on upload. The prices the UI
+quotes live next to it, in `PRICES` and `TYPICAL_COST`.
 
 ---
 
@@ -185,7 +217,7 @@ devices are on the same account.
 **"Could not read the photo."** The service role key is wrong or missing. The solver reads from
 a private bucket and needs it.
 
-**Fast mode keeps timing out.** Usually a very large photo on a slow connection. The client
+**Medium keeps timing out.** Usually a very large photo on a slow connection. The client
 already downsizes to 1600px; you can lower it further in `src/lib/image.ts`.
 
 **Magic link opens and bounces back to login.** The redirect URL isn't in Supabase's allow list,

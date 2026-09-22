@@ -1,8 +1,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
-import { MODES } from '@/lib/modes';
+import { MODES, answerLocaleRules } from '@/lib/modes';
+import type { Locale } from '@/lib/i18n';
 import { createServerSupabase, createServiceSupabase } from '@/lib/supabase/server';
-import type { Mode } from '@/lib/types';
+import { imagePathsOf, type Mode } from '@/lib/types';
+
+interface ImageBlock {
+  type: 'image';
+  source: {
+    type: 'base64';
+    media_type: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+    data: string;
+  };
+}
 
 export const runtime = 'nodejs';
 // Fine mode can think for a few minutes. Vercel caps this per plan — see README.
@@ -83,22 +93,44 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, skipped: 'already running or finished' });
   }
 
-  // --- fetch the photo ----------------------------------------------------
-  const { data: file, error: dlErr } = await admin.storage
-    .from('problems')
-    .download(submission.image_path);
-
-  if (dlErr || !file) {
-    await touch({ status: 'error', error: `Could not read the photo: ${dlErr?.message ?? 'missing'}` });
+  // --- fetch every photo of the problem -----------------------------------
+  const paths = imagePathsOf(submission);
+  if (!paths.length) {
+    await touch({ status: 'error', error: 'This submission has no photo attached' });
     return NextResponse.json({ error: 'Photo unavailable' }, { status: 500 });
   }
 
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const mediaType = (file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg') as
-    | 'image/jpeg'
-    | 'image/png'
-    | 'image/webp'
-    | 'image/gif';
+  let images: ImageBlock[];
+  try {
+    images = await Promise.all(
+      paths.map(async (path, i) => {
+        const { data: file, error: dlErr } = await admin.storage.from('problems').download(path);
+        if (dlErr || !file) {
+          throw new Error(
+            `Could not read photo ${i + 1} of ${paths.length}: ${dlErr?.message ?? 'missing'}`
+          );
+        }
+
+        const bytes = Buffer.from(await file.arrayBuffer());
+        const mediaType = (
+          file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg'
+        ) as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+
+        return {
+          type: 'image' as const,
+          source: {
+            type: 'base64' as const,
+            media_type: mediaType,
+            data: bytes.toString('base64'),
+          },
+        };
+      })
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Photo unavailable';
+    await touch({ status: 'error', error: message });
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 
   // --- stream from Claude, flushing into Postgres as it goes --------------
   const controller = new AbortController();
@@ -108,6 +140,10 @@ export async function POST(request: Request) {
   let flushed = '';
   let lastFlush = 0;
   let timedOut = false;
+  // Read off the stream rather than from the final message, so a pass cut short
+  // by the timeout still reports what it burned.
+  let inputTokens = 0;
+  let outputTokens = 0;
 
   const flush = async (force = false) => {
     const now = Date.now();
@@ -122,19 +158,28 @@ export async function POST(request: Request) {
   const params: Record<string, unknown> = {
     model: cfg.model,
     max_tokens: cfg.maxTokens,
-    system: cfg.systemPrompt(submission.language || 'python'),
+    system:
+      cfg.systemPrompt(submission.language || 'python') +
+      answerLocaleRules((submission.answer_locale as Locale) || 'zh-TW'),
     messages: [
       {
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: bytes.toString('base64') },
-          },
+          // Numbering the pages keeps the model from re-reading an overlap as
+          // a second, different problem.
+          ...images.flatMap((img, i) =>
+            images.length > 1
+              ? [{ type: 'text' as const, text: `Page ${i + 1} of ${images.length}:` }, img]
+              : [img]
+          ),
           {
             type: 'text',
             text:
-              `Solve the problem in this photo. Target language: ${submission.language || 'python'}. ` +
+              (images.length > 1
+                ? `The ${images.length} photos above are consecutive parts of ONE problem. `
+                : '') +
+              `Solve the problem in ${images.length > 1 ? 'these photos' : 'this photo'}. ` +
+              `Target language: ${submission.language || 'python'}. ` +
               `Follow your mode's output format exactly.`,
           },
         ],
@@ -159,6 +204,11 @@ export async function POST(request: Request) {
       ) {
         text += event.delta.text;
         await flush();
+      } else if (event.type === 'message_start') {
+        inputTokens = event.message.usage?.input_tokens ?? 0;
+      } else if (event.type === 'message_delta') {
+        // Cumulative, so the last one seen is the total.
+        outputTokens = event.usage?.output_tokens ?? outputTokens;
       }
     }
   } catch (err) {
@@ -175,6 +225,8 @@ export async function POST(request: Request) {
         status: 'error',
         error: message,
         content: text,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
         elapsed_ms: Date.now() - startedAt,
       });
       return NextResponse.json({ error: message }, { status: 500 });
@@ -189,6 +241,8 @@ export async function POST(request: Request) {
   await touch({
     status: finalStatus,
     content: text,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
     elapsed_ms: elapsed,
     error: finalStatus === 'error' ? `No output before the ${cfg.budgetMs / 1000}s limit` : null,
   });

@@ -12,13 +12,19 @@
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- 1. Submissions: one row per photo the user captures.
+-- 1. Submissions: one row per problem, carrying one or more photos of it.
+--
+--    Upgrading an existing project? Run supabase/migrate-multi-image.sql — it
+--    adds `image_paths` and backfills it. This file is safe to re-run but will
+--    not alter a table that already exists.
 -- ---------------------------------------------------------------------------
 create table if not exists public.submissions (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references auth.users(id) on delete cascade,
-  image_path    text not null,                 -- path inside the `problems` storage bucket
-  language      text not null default 'python',
+  image_path    text not null,                 -- first photo; path inside the `problems` bucket
+  image_paths   text[],                        -- every photo, in reading order
+  language      text not null default 'python',-- the programming language to answer in
+  answer_locale text not null default 'zh-TW', -- the human language of the explanation
   title         text,                          -- filled in by the first pass that reads the photo
   device_label  text,                          -- e.g. "iPhone" / "Windows" — display only
   created_at    timestamptz not null default now()
@@ -28,7 +34,7 @@ create index if not exists submissions_user_created_idx
   on public.submissions (user_id, created_at desc);
 
 -- ---------------------------------------------------------------------------
--- 2. Results: exactly three rows per submission (fast / medium / fine).
+-- 2. Results: one row per mode per submission (medium / fine).
 --    The solver streams into `content` so every signed-in device sees it live.
 -- ---------------------------------------------------------------------------
 create table if not exists public.results (
@@ -41,6 +47,8 @@ create table if not exists public.results (
   content        text not null default '',
   error          text,
   model          text,
+  input_tokens   integer,                      -- reported by the API; drives the cost readout
+  output_tokens  integer,                      -- includes thinking tokens, which are billed as output
   elapsed_ms     integer,
   started_at     timestamptz,
   updated_at     timestamptz not null default now(),

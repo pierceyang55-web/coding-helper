@@ -1,4 +1,39 @@
+import type { Locale } from './i18n';
 import type { Mode } from './types';
+
+/**
+ * Appended to the system prompt. The model writes in the reader's language
+ * directly — nothing is translated afterwards, so this costs no extra calls.
+ *
+ * The English carve-outs matter: the reader is preparing for an interview held
+ * in English. They need the Chinese to understand the idea and the English to
+ * say it out loud.
+ */
+export function answerLocaleRules(locale: Locale): string {
+  if (locale !== 'zh-TW') return '';
+
+  return `
+
+LANGUAGE OF YOUR ANSWER
+Write all prose in Traditional Chinese (繁體中文，台灣用語).
+
+Keep every one of the following in English — never translate them:
+- The TITLE line: the problem's official English name, exactly as it appears in the photo.
+- Every markdown heading specified above, verbatim (## Problem, ## Approach, ## Solution, ...).
+- Algorithm, data-structure and technique names: sliding window, monotonic stack, two
+  pointers, DFS, BFS, memoization, prefix sum, binary search, backtracking, union-find,
+  topological sort, heap, trie, segment tree, and so on.
+- Complexity notation and its vocabulary: O(n log n), amortised O(1), time limit exceeded.
+- All code, identifiers, and the comments inside code blocks.
+- Anything quoted from the photo: constraints, example input/output, function signatures,
+  and variable names such as s or nums.
+- Standard interview vocabulary: edge case, invariant, brute force, in-place, overflow,
+  greedy, DP / dynamic programming, stack, queue, hash map.
+
+The first time you introduce an English term you may gloss it once in brackets — for
+example "monotonic stack（單調堆疊）" — and then use the English alone from then on.
+Do not produce a Chinese-only sentence where the key technical noun has been translated.`;
+}
 
 export interface ModeConfig {
   key: Mode;
@@ -18,9 +53,15 @@ export interface ModeConfig {
   systemPrompt: (language: string) => string;
 }
 
-const BASE_RULES = `You are reading a photograph of a coding-interview / LeetCode-style problem.
-The photo may be angled, glared, cropped or low contrast. Read every visible line: the
+const BASE_RULES = `You are reading photographs of a single coding-interview / LeetCode-style problem.
+The photos may be angled, glared, cropped or low contrast. Read every visible line: the
 title, the description, the constraints, and any example input/output blocks.
+
+When several photos are attached they are consecutive parts of the SAME problem — a long
+question scrolled across two screens, or the statement and its examples shot separately.
+Read them in the order given and treat them as one continuous statement. Expect overlap
+between consecutive shots: do not report the repeated lines twice, and do not treat the
+photos as separate problems.
 
 If part of the problem is unreadable or cut off, say so explicitly in one line and solve
 the most reasonable interpretation — never invent constraints that aren't visible.
@@ -31,34 +72,6 @@ TITLE: <the problem's name, or a 3-6 word description if untitled>
 Never wrap your entire answer in one big code fence. Use fenced code blocks only for code.`;
 
 export const MODES: Record<Mode, ModeConfig> = {
-  // ---------------------------------------------------------------- FAST ----
-  fast: {
-    key: 'fast',
-    label: 'Fast',
-    tagline: 'Optimal code in ~10s',
-    budgetMs: 10_000,
-    model: 'claude-haiku-4-5',
-    maxTokens: 2_000,
-    thinking: false,
-    color: '#38bdf8',
-    accent: 'text-accent-fast',
-    ring: 'ring-accent-fast/40 bg-accent-fast/10',
-    systemPrompt: (language) => `${BASE_RULES}
-
-MODE: FAST. You have under 10 seconds. Optimise for time-to-answer, not completeness.
-
-Output exactly this and nothing else:
-1. The TITLE line.
-2. One sentence naming the optimal approach (e.g. "Sliding window with a hash map").
-3. A single fenced ${language} code block: the optimal solution, ready to paste into the
-   LeetCode editor. Use the standard class/method signature for the problem. No comments
-   except where genuinely non-obvious.
-4. One final line: \`Time: O(...) · Space: O(...)\`
-
-No preamble, no restatement of the problem, no walkthrough, no alternatives, no tests.
-Be aggressively brief. Correct and short beats thorough and late.`,
-  },
-
   // -------------------------------------------------------------- MEDIUM ----
   medium: {
     key: 'medium',
@@ -158,4 +171,45 @@ sentence sketch of how the solution changes.`,
   },
 };
 
-export const MODE_ORDER: Mode[] = ['fast', 'medium', 'fine'];
+export const MODE_ORDER: Mode[] = ['medium', 'fine'];
+
+/** The tab shown when a new submission arrives. */
+export const DEFAULT_MODE: Mode = 'medium';
+
+/**
+ * Modes that fire automatically on upload. Fine is left out on purpose: it runs
+ * on Opus at high effort and costs roughly 6x a Medium pass — about 80% of the
+ * bill when all of them run. You start it from the tab when you want it.
+ */
+export const AUTO_MODES: Mode[] = ['medium'];
+
+/** USD per million tokens, matching the model each mode uses. */
+const PRICES: Record<string, { input: number; output: number }> = {
+  'claude-opus-5': { input: 5, output: 25 },
+  'claude-sonnet-5': { input: 2, output: 10 },
+  'claude-haiku-4-5': { input: 1, output: 5 },
+};
+
+/**
+ * What a finished pass actually cost, from the token counts the API reported.
+ * Thinking tokens are billed as output, which is why Fine is the expensive one.
+ */
+export function costOf(model: string | null, inputTokens: number, outputTokens: number): number {
+  const p = PRICES[model ?? ''] ?? PRICES['claude-sonnet-5'];
+  return (inputTokens / 1e6) * p.input + (outputTokens / 1e6) * p.output;
+}
+
+/**
+ * Rough cost before a pass runs, for the button that starts it. Measured on a
+ * real 1600px problem photo: ~5.8k input tokens either way; output is what
+ * separates the modes (Fine's high effort spends most of it on thinking).
+ */
+export const TYPICAL_COST: Record<Mode, number> = {
+  medium: 0.023,
+  fine: 0.15,
+};
+
+export function formatCost(usd: number): string {
+  if (usd < 0.01) return `<$0.01`;
+  return `$${usd.toFixed(usd < 1 ? 3 : 2)}`;
+}
