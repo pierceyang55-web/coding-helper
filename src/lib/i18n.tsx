@@ -18,6 +18,15 @@ const EN = {
   'app.tagline': 'Snap a problem. Read the answer anywhere you are signed in.',
   'app.signOut': 'Sign out',
 
+  'login.placeholder': 'Passcode',
+  'login.unlock': 'Unlock',
+  'login.unlocking': 'Unlocking…',
+  'login.wrong': 'Wrong passcode.',
+  'login.notConfigured':
+    'NEXT_PUBLIC_APP_EMAIL is not set on this deployment, so there is no account to sign in to.',
+  'login.hint':
+    'Once per device — the session refreshes itself after that. Unlock on your phone and your computer and results appear on both at once.',
+
   'capture.heading': 'New problem',
   'capture.choose': 'Choose photos',
   'capture.addMore': 'Add more photos',
@@ -84,6 +93,13 @@ export type StringKey = keyof typeof EN;
 const ZH: Record<StringKey, string> = {
   'app.tagline': '拍下題目，在任何登入的裝置上看答案。',
   'app.signOut': '登出',
+
+  'login.placeholder': '密碼',
+  'login.unlock': '解鎖',
+  'login.unlocking': '解鎖中…',
+  'login.wrong': '密碼錯誤。',
+  'login.notConfigured': '這份部署沒有設定 NEXT_PUBLIC_APP_EMAIL，沒有可以登入的帳號。',
+  'login.hint': '每台裝置只需要輸入一次，之後 session 會自動續期。手機和電腦都解鎖，結果就會同時出現在兩邊。',
 
   'capture.heading': '新題目',
   'capture.choose': '選擇照片',

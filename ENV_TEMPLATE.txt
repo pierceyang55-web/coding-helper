@@ -13,3 +13,10 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
 
 # Base URL used for auth redirects. Set to your deployed URL in production.
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# ---- Single-user gate ----
+# There is one account. The login page asks only for its password, so this
+# email is a build-time constant and ships in the client bundle — that is fine,
+# it is not the secret. The password is, and it lives only in Supabase.
+# Set it under Authentication -> Users -> (the user) -> Reset password.
+NEXT_PUBLIC_APP_EMAIL=you@example.com
