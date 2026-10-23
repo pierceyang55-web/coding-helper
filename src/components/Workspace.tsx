@@ -68,6 +68,7 @@ export default function Workspace({ userId, email }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [showPhoto, setShowPhoto] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
 
@@ -80,9 +81,25 @@ export default function Workspace({ userId, email }: Props) {
   const openPickerRef = useRef<(() => void) | null>(null);
 
   function newProblem() {
+    setHistoryOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     openPickerRef.current?.();
   }
+
+  // Escape closes the drawer, and the body does not scroll behind it.
+  useEffect(() => {
+    if (!historyOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setHistoryOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [historyOpen]);
 
   // ---------------------------------------------------------------- load --
   useEffect(() => {
@@ -307,6 +324,25 @@ export default function Workspace({ userId, email }: Props) {
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent-fast/25 to-accent-fine/25 text-xs ring-1 ring-ink-700">
             ⌘
           </span>
+          {/* The drawer trigger takes the logo's place on a phone, where the
+              logo was decoration and the history was unreachable. */}
+          {submissions.length > 0 && (
+            <button
+              onClick={() => setHistoryOpen(true)}
+              aria-label={t('history.open')}
+              className="-ml-1 rounded-lg px-2 py-1.5 text-ink-300 transition hover:text-ink-100 lg:hidden"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                <path
+                  d="M2 4h12M2 8h12M2 12h12"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          )}
+
           <h1 className="text-sm font-semibold tracking-tight">Coding Helper</h1>
 
           <button
@@ -453,12 +489,58 @@ export default function Workspace({ userId, email }: Props) {
             />
           </div>
 
-          <div className="lg:hidden">
+        </div>
+      </div>
+
+      {/* ------------------------------------------- history, on a phone -- */}
+      {/* On a narrow screen the list used to sit under the answer, which with
+          a ladder of solutions put it thousands of pixels down. It slides in
+          from the left instead, over the answer, and closes when you pick. */}
+      <div
+        className={[
+          'fixed inset-0 z-30 lg:hidden',
+          historyOpen ? '' : 'pointer-events-none',
+        ].join(' ')}
+        aria-hidden={!historyOpen}
+      >
+        <div
+          onClick={() => setHistoryOpen(false)}
+          className={[
+            'absolute inset-0 bg-ink-950/70 backdrop-blur-sm transition-opacity duration-200',
+            historyOpen ? 'opacity-100' : 'opacity-0',
+          ].join(' ')}
+        />
+        <div
+          className={[
+            'absolute inset-y-0 left-0 flex w-[82%] max-w-xs flex-col',
+            'border-r border-ink-800 bg-ink-950 shadow-2xl',
+            'transition-transform duration-200 ease-out',
+            historyOpen ? 'translate-x-0' : '-translate-x-full',
+          ].join(' ')}
+        >
+          <div className="flex items-center justify-between border-b border-ink-800 px-4 py-3">
+            <h2 className="text-xs font-semibold tracking-[0.14em] text-ink-400 uppercase">
+              {t('history.heading')}
+            </h2>
+            <button
+              onClick={() => setHistoryOpen(false)}
+              aria-label={t('history.close')}
+              className="rounded-lg px-2 py-1 text-sm text-ink-400 transition hover:text-ink-100"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-2">
             <HistoryList
               submissions={submissions}
               resultsBySub={resultsBySub}
               activeId={activeId}
-              onSelect={setActiveId}
+              onSelect={(id) => {
+                setActiveId(id);
+                setHistoryOpen(false);
+              }}
+              bare
             />
           </div>
         </div>

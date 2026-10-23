@@ -9,6 +9,8 @@ interface Props {
   resultsBySub: Record<string, Partial<Record<Mode, Result>>>;
   activeId: string | null;
   onSelect: (id: string) => void;
+  /** Inside the phone drawer, which supplies its own frame, heading and scroll. */
+  bare?: boolean;
 }
 
 const DOT: Record<string, string> = {
@@ -28,16 +30,33 @@ function when(iso: string, t: (k: 'history.justNow' | 'history.minutes' | 'histo
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export default function HistoryList({ submissions, resultsBySub, activeId, onSelect }: Props) {
+export default function HistoryList({
+  submissions,
+  resultsBySub,
+  activeId,
+  onSelect,
+  bare = false,
+}: Props) {
   const { t } = useI18n();
   if (!submissions.length) return null;
 
   return (
-    <div className="rounded-2xl border border-ink-800 bg-ink-900/60 p-2 backdrop-blur">
-      <h2 className="px-2 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-ink-400">
-        {t('history.heading')}
-      </h2>
-      <ul className="max-h-[46vh] space-y-0.5 overflow-y-auto lg:max-h-[calc(100vh-25rem)]">
+    <div
+      className={
+        bare ? '' : 'rounded-2xl border border-ink-800 bg-ink-900/60 p-2 backdrop-blur'
+      }
+    >
+      {!bare && (
+        <h2 className="px-2 py-2 text-xs font-semibold tracking-[0.14em] text-ink-400 uppercase">
+          {t('history.heading')}
+        </h2>
+      )}
+      <ul
+        className={[
+          'space-y-0.5',
+          bare ? '' : 'max-h-[46vh] overflow-y-auto lg:max-h-[calc(100vh-25rem)]',
+        ].join(' ')}
+      >
         {submissions.map((s) => {
           const rs = resultsBySub[s.id] ?? {};
           const active = s.id === activeId;

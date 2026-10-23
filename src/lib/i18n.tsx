@@ -46,6 +46,8 @@ const EN = {
   'capture.removePhoto': 'Remove photo {n}',
 
   'history.heading': 'History',
+  'history.open': 'Show history',
+  'history.close': 'Close history',
   'history.reading': 'Reading photo…',
   'history.justNow': 'just now',
   'history.minutes': '{n}m ago',
@@ -120,6 +122,8 @@ const ZH: Record<StringKey, string> = {
   'capture.removePhoto': '移除第 {n} 張',
 
   'history.heading': '歷史紀錄',
+  'history.open': '顯示歷史紀錄',
+  'history.close': '關閉歷史紀錄',
   'history.reading': '讀取照片中…',
   'history.justNow': '剛剛',
   'history.minutes': '{n} 分鐘前',
