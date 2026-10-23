@@ -74,6 +74,16 @@ export default function Workspace({ userId, email }: Props) {
   const activeIdRef = useRef<string | null>(null);
   activeIdRef.current = activeId;
 
+  // Filled in by CaptureCard. The capture controls live in the left column and
+  // a four-solution answer is long, so without this the way to start the next
+  // problem is a long scroll back up.
+  const openPickerRef = useRef<(() => void) | null>(null);
+
+  function newProblem() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    openPickerRef.current?.();
+  }
+
   // ---------------------------------------------------------------- load --
   useEffect(() => {
     let cancelled = false;
@@ -302,6 +312,16 @@ export default function Workspace({ userId, email }: Props) {
             ⌘
           </span>
           <h1 className="text-sm font-semibold tracking-tight">Coding Helper</h1>
+
+          <button
+            onClick={newProblem}
+            disabled={uploading}
+            className="ml-3 flex items-center gap-1.5 rounded-lg bg-accent-medium/15 px-3 py-1.5 text-xs font-semibold text-accent-medium ring-1 ring-accent-medium/40 transition hover:bg-accent-medium/25 disabled:opacity-50"
+          >
+            <span className="text-sm leading-none">+</span>
+            {t('app.newProblem')}
+          </button>
+
           <span className="ml-auto hidden text-xs text-ink-600 sm:block">{email}</span>
 
           {/* Interface language only — switching costs nothing. The answer's
@@ -330,6 +350,7 @@ export default function Workspace({ userId, email }: Props) {
             language={language}
             onLanguageChange={setLanguage}
             onSubmit={handleFiles}
+            openPickerRef={openPickerRef}
             busy={uploading}
             error={uploadError}
           />

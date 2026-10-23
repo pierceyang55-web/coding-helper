@@ -17,6 +17,7 @@ type Vars = Record<string, string | number>;
 const EN = {
   'app.tagline': 'Snap a problem. Read the answer anywhere you are signed in.',
   'app.signOut': 'Sign out',
+  'app.newProblem': 'New problem',
 
   'login.placeholder': 'Passcode',
   'login.unlock': 'Unlock',
@@ -94,6 +95,7 @@ export type StringKey = keyof typeof EN;
 const ZH: Record<StringKey, string> = {
   'app.tagline': '拍下題目，在任何登入的裝置上看答案。',
   'app.signOut': '登出',
+  'app.newProblem': '新題目',
 
   'login.placeholder': '密碼',
   'login.unlock': '解鎖',

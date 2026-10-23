@@ -11,6 +11,12 @@ interface Props {
   onSubmit: (files: File[]) => void;
   busy: boolean;
   error: string | null;
+  /**
+   * Filled in with a function that opens the photo picker, so the header's
+   * "new problem" button can reach it. The card owns the file inputs; this
+   * hands out the one capability the header needs rather than lifting them.
+   */
+  openPickerRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 interface Pending {
@@ -28,11 +34,20 @@ export default function CaptureCard({
   onSubmit,
   busy,
   error,
+  openPickerRef,
 }: Props) {
   const { t } = useI18n();
   const libraryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<Pending[]>([]);
+
+  useEffect(() => {
+    if (!openPickerRef) return;
+    openPickerRef.current = () => libraryRef.current?.click();
+    return () => {
+      openPickerRef.current = null;
+    };
+  }, [openPickerRef]);
 
   // Object URLs are only freed when we say so — do it on unmount for whatever
   // is still queued. Individual removals revoke eagerly in `remove`.
