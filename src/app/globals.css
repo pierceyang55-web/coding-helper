@@ -92,6 +92,60 @@ body {
   @apply my-6 border-ink-700;
 }
 
+/* ------------------------------------------------- the solution ladder -- */
+
+/* Each `### Solution N` starts a card, so four solutions read as four things
+   rather than one long scroll. */
+.prose-helper h3 {
+  @apply mt-7 rounded-t-xl border-t border-r border-l border-ink-700 bg-ink-900/70 px-4 pt-3 pb-2;
+}
+.prose-helper h3 + p {
+  @apply -mt-px border-r border-l border-ink-700 bg-ink-900/70 px-4 py-2 text-[13px] text-ink-400;
+}
+
+/* The complexity callout: the one line worth reading twice. */
+.prose-helper blockquote {
+  @apply my-4 rounded-lg border-l-[3px] border-emerald-500/60 bg-emerald-500/[0.07] px-4 py-3 text-[14px] leading-relaxed;
+}
+.prose-helper blockquote p {
+  @apply my-1;
+}
+.prose-helper blockquote strong {
+  @apply text-emerald-300;
+}
+
+/* Folded code and derivations — four solutions fully expanded is unreadable,
+   so each one opens on demand. */
+.prose-helper details {
+  @apply my-2.5 overflow-hidden rounded-lg bg-ink-900/60 ring-1 ring-ink-800;
+}
+.prose-helper summary {
+  @apply cursor-pointer list-none px-4 py-2.5 text-[13px] font-medium text-ink-300 transition select-none hover:text-ink-100;
+}
+.prose-helper summary::-webkit-details-marker {
+  display: none;
+}
+.prose-helper summary::before {
+  content: '▸';
+  @apply mr-2 inline-block text-ink-600 transition-transform;
+}
+.prose-helper details[open] > summary::before {
+  @apply rotate-90;
+}
+.prose-helper details[open] > summary {
+  @apply border-b border-ink-800;
+}
+.prose-helper details > *:not(summary) {
+  @apply px-4;
+}
+.prose-helper details > pre,
+.prose-helper details > div {
+  @apply px-0;
+}
+.prose-helper details > *:last-child {
+  @apply mb-3;
+}
+
 /* ---------------------------------------------------- highlight.js theme -- */
 .hljs-comment,
 .hljs-quote {

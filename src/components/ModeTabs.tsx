@@ -1,6 +1,6 @@
 'use client';
 
-import { AUTO_MODES, MODES, MODE_ORDER, TYPICAL_COST, formatCost } from '@/lib/modes';
+import { AUTO_MODES, MODES, MODE_ORDER, TYPICAL_COST, costOf, formatCost } from '@/lib/modes';
 import { useI18n } from '@/lib/i18n';
 import type { Mode, Result } from '@/lib/types';
 
@@ -43,13 +43,25 @@ function StatusChip({ r, mode, now }: { r: Result | undefined; mode: Mode; now: 
       </span>
     );
 
+  // What the pass actually cost, right where you look when it finishes — the
+  // same number is at the foot of the answer, but that is below the code and
+  // nobody scrolls there.
+  const spent =
+    r.output_tokens != null
+      ? formatCost(costOf(r.model, r.input_tokens ?? 0, r.output_tokens))
+      : null;
+
   if (r.status === 'done')
-    return <span className="text-[11px] tabular-nums text-emerald-400">✓ {secs}s</span>;
+    return (
+      <span className="text-[11px] tabular-nums text-emerald-400">
+        ✓ {secs}s{spent && <span className="text-ink-500"> · {spent}</span>}
+      </span>
+    );
 
   if (r.status === 'timeout')
     return (
       <span className="text-[11px] tabular-nums text-amber-400" title="Cut off at the time limit">
-        ⏱ {secs}s
+        ⏱ {secs}s{spent && <span className="text-ink-500"> · {spent}</span>}
       </span>
     );
 

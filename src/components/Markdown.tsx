@@ -3,7 +3,32 @@
 import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+
+/**
+ * The answer contains <details>/<summary> so each solution can fold its code
+ * and its complexity derivation away. That means rendering raw HTML, and the
+ * HTML comes from a model reading a photograph — a photo could contain text
+ * aimed at the model rather than at the reader. So it is sanitized: details,
+ * summary and the highlighter's class names are allowed through, everything
+ * else that could execute is not.
+ *
+ * Order matters. rehypeRaw turns the HTML into real nodes, rehypeSanitize
+ * prunes them, and rehypeHighlight runs last so the class names it adds are
+ * not themselves stripped.
+ */
+const schema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), 'details', 'summary'],
+  attributes: {
+    ...defaultSchema.attributes,
+    details: [...(defaultSchema.attributes?.details ?? []), 'open'],
+    code: [...(defaultSchema.attributes?.code ?? []), ['className', /^language-./, 'math-inline']],
+    span: [...(defaultSchema.attributes?.span ?? []), ['className', /^hljs-./]],
+  },
+};
 
 function CodeBlock({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLPreElement>(null);
@@ -38,7 +63,11 @@ export default function Markdown({ children }: { children: string }) {
     <div className="prose-helper">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }]]}
+        rehypePlugins={[
+          rehypeRaw,
+          [rehypeSanitize, schema],
+          [rehypeHighlight, { detect: true, ignoreMissing: true }],
+        ]}
         components={{
           pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
         }}

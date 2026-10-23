@@ -17,14 +17,23 @@ export function answerLocaleRules(locale: Locale): string {
 LANGUAGE OF YOUR ANSWER
 Write all prose in Traditional Chinese (繁體中文，台灣用語).
 
+Translate exactly these structural labels, and nothing else structural:
+- "### Solution N: <name>"  ->  "### 解法 N：<name>"   (the technique's name stays English)
+- "**Intuition**:"          ->  "**直覺**："
+- "**Say it like this:**"   ->  "**面試這樣講：**"
+- "<summary>Why this complexity</summary>"  ->  "<summary>為什麼是這個 complexity</summary>"
+- "<summary>See the code</summary>"         ->  "<summary>看 code</summary>"
+- "Variables:"              ->  "變數："
+
 Keep every one of the following in English — never translate them:
 - The TITLE line: the problem's official English name, exactly as it appears in the photo.
-- Every markdown heading specified above, verbatim (## Problem, ## Approach, ## Solution, ...).
+- "## Problem" and "## English summary", verbatim.
 - Algorithm, data-structure and technique names: sliding window, monotonic stack, two
   pointers, DFS, BFS, memoization, prefix sum, binary search, backtracking, union-find,
   topological sort, heap, trie, segment tree, and so on.
 - Complexity notation and its vocabulary: O(n log n), amortised O(1), time limit exceeded.
-- All code, identifiers, and the comments inside code blocks.
+- All code and identifiers. The trailing comments inside code blocks are the exception:
+  write those in Traditional Chinese, keeping any identifier or technique name English.
 - Anything quoted from the photo: constraints, example input/output, function signatures,
   and variable names such as s or nums.
 - Standard interview vocabulary: edge case, invariant, brute force, in-place, overflow,
@@ -72,52 +81,100 @@ TITLE: <the problem's name, or a 3-6 word description if untitled>
 Never wrap your entire answer in one big code fence. Use fenced code blocks only for code.`;
 
 /**
- * The interview format: read the problem, name the brute force, name the one
- * insight, lay out the algorithm, then a spoken English recap and the code.
+ * The interview format: the problem, then the ladder of solutions from the
+ * brute force up to the optimal one, then a spoken English recap.
  *
- * The sentence caps are the point of the shape, not decoration — without them
- * the model pads those sections, and the padding is billed at the output rate.
+ * Two things carry the quality here. The sentence caps stop the model padding
+ * sections that are billed at the output rate. And the count is adaptive —
+ * forcing a fixed number of solutions onto a problem that only has two makes
+ * the model invent a third, which is worse than stopping at two.
  */
-const INTERVIEW_FORMAT = (language: string) => `Use these markdown headings, in this order, and write nothing outside them:
-
-## Problem
+const INTERVIEW_FORMAT = (language: string) => `## Problem
 Two or three lines: what is being asked, plus the constraints visible in the photo.
 
-## Brute force
-The obvious solution, in AT MOST TWO SENTENCES, then one line of the exact form
-\`Time: O(...) · Space: O(...)\` for it. Say in the second sentence why it fails the
-given constraints. Do not write code here.
+---
 
-## Instinct
-AT MOST TWO SENTENCES. The single observation that makes the optimal solution possible —
-what you would notice in the first thirty seconds of the interview and say out loud. Name
-the data structure or technique it points to. No restatement of the problem.
+Then a ladder of solutions. Before you write any of them, work out what the OPTIMAL
+solution is, then decide which earlier solutions actually lead there — do not write
+forwards and hope the last one turns out to be optimal.
 
-## Approach
-The algorithm in 3-6 numbered steps, each one line. End with one line of the exact form
-\`Time: O(...) · Space: O(...)\` for this approach, followed by a short clause justifying
-each of the two bounds.
+HOW MANY: between 2 and 4, decided by the problem, not by a quota.
+- The FIRST is always the brute force, as the baseline you argue away from.
+- The LAST is always the optimal solution for this problem.
+- Add a middle rung only when it is a genuine stepping stone a real interview would
+  walk through. If the problem goes straight from brute force to optimal, write two
+  and stop. A padded rung — the same algorithm rewritten, or a variant that is not
+  actually better — is worse than no rung.
+- If you are not confident a solution is correct, leave it out. Two solid solutions
+  beat four where one is wrong.
+
+Each solution uses EXACTLY this shape:
+
+### Solution N: <short name of the technique, in English>
+
+\`Time O(...) · Space O(...)\`
+
+**Intuition**: one or two sentences — what you would notice in the first thirty
+seconds and say out loud. Name the data structure or technique it points to.
+
+**Say it like this:**
+1. <one line>
+2. <one line>
+3. <one line>
+(3-5 steps. This is a script to speak, not prose to read. For the brute force,
+the last step says why it is too slow and what idea the next solution brings.)
+
+> **Time O(...) · Space O(...)**: one plain sentence tying each bound to what the
+> algorithm actually does.
+> Variables: n = <what n is>, m = <what m is>, ...
+
+<details>
+<summary>Why this complexity</summary>
+
+Derive both bounds — count the work, do not assert the answer. Three to six lines.
+
+</details>
+
+<details>
+<summary>See the code</summary>
+
+\`\`\`${language}
+<the code>
+\`\`\`
+
+</details>
+
+CODE RULES
+- Use the standard class/method signature for the problem.
+- EVERY line gets a trailing comment saying what that line does. Align the comments
+  into a column. Keep each one short — a clause, not a sentence.
+- The code must run as written. No pseudocode, no elisions.
+
+HTML RULES — get these exactly right or the page renders as literal text:
+- A blank line after <summary>...</summary>, and a blank line before </details>.
+- Never indent the <details> or <summary> tags.
+- Never put a <details> inside another <details>.
+
+After the last solution:
 
 ## English summary
-AT MOST THREE SENTENCES, in English, always — this section is never translated. This is the
-script the reader says out loud in the interview: the insight, the algorithm, the
-complexity. Plain spoken English, no markdown, no code, no bullet points.
+AT MOST THREE SENTENCES, in English, always — this section is never translated. The
+script for the optimal solution only: the insight, the algorithm, the complexity.
+Plain spoken English, no markdown, no code, no bullet points.
 
-## Solution
-One fenced ${language} code block, and nothing else in this section. Clean, idiomatic,
-interview-ready, using the standard class/method signature for the problem. Comment only
-the non-obvious steps.
-
-Respect every sentence cap. A section that runs long is worse than one that is too short.`;
+NEVER claim a solution was tested, benchmarked, or verified against cases. You cannot
+run code. Stating a confidence score or a number of test cases passed would be
+fabricated, and a reader trusting a made-up score is worse off than one trusting
+nothing.`;
 
 export const MODES: Record<Mode, ModeConfig> = {
   // -------------------------------------------------------------- MEDIUM ----
   medium: {
     key: 'medium',
     label: 'Medium',
-    budgetMs: 60_000,
+    budgetMs: 180_000,
     model: 'claude-sonnet-5',
-    maxTokens: 8_000,
+    maxTokens: 12_000,
     thinking: true,
     effort: 'medium',
     color: '#a78bfa',
@@ -125,9 +182,8 @@ export const MODES: Record<Mode, ModeConfig> = {
     ring: 'ring-accent-medium/40 bg-accent-medium/10',
     systemPrompt: (language) => `${BASE_RULES}
 
-MODE: MEDIUM. The answer the reader takes into the interview. Think it through before you
-write: the Instinct must be the real one, and the Solution must be correct against every
-constraint visible in the photo.
+MODE: MEDIUM. The answer the reader takes into the interview, and the one that runs on
+every upload. Get the optimal solution right before you worry about the rungs below it.
 
 ${INTERVIEW_FORMAT(language)}`,
   },
@@ -138,7 +194,7 @@ ${INTERVIEW_FORMAT(language)}`,
     label: 'Fine',
     budgetMs: 240_000,
     model: 'claude-opus-5',
-    maxTokens: 16_000,
+    maxTokens: 24_000,
     thinking: true,
     effort: 'high',
     color: '#fb923c',
@@ -146,51 +202,15 @@ ${INTERVIEW_FORMAT(language)}`,
     ring: 'ring-accent-fine/40 bg-accent-fine/10',
     systemPrompt: (language) => `${BASE_RULES}
 
-MODE: FINE. Take the time you need. This is the answer the user studies from — it should
-leave nothing for them to look up afterwards.
+MODE: FINE. The same format as Medium, run on the strongest model with time to think.
+This is what the reader presses when the Medium answer looked wrong, or when the problem
+is hard enough that they want the complexity analysis checked rather than asserted.
 
-Structure your answer with these markdown headings, in order:
+So spend the extra time where it changes the answer: on whether the optimal solution is
+actually optimal, on whether the code is correct against every constraint in the photo,
+and on whether each rung of the ladder earns its place. Do not spend it on more words.
 
-## Problem
-Restate it precisely. List every constraint visible in the photo and flag any that are
-missing or unreadable. Work through one of the photo's examples by hand.
-
-## Brute force
-The obvious solution and its complexity, in a few lines of pseudocode. State exactly why
-it fails the given constraints (do the arithmetic: n = 10^5 means ~10^10 ops).
-
-## Instinct
-The single observation that unlocks the optimal solution. This is the most important
-paragraph in your answer — make it land.
-
-## Approach
-The algorithm, step by step. Include a correctness argument: the loop invariant, the
-exchange argument, or the induction that shows it's right. Not just "this works".
-
-## English summary
-AT MOST THREE SENTENCES, in English, always — this section is never translated. The script
-the reader says out loud in the interview: the insight, the algorithm, the complexity.
-Plain spoken English, no markdown, no code.
-
-## Solution
-One fenced ${language} code block. Production quality: meaningful names, correct edge-case
-handling, comments explaining *why* rather than *what*.
-
-## Complexity
-Time and space, derived rather than asserted. Note the tightest bound and whether it is
-provably optimal for this problem.
-
-## Edge cases and pitfalls
-The cases that break naive implementations, plus the specific mistakes interviewers watch
-for on this problem.
-
-## Test cases
-A fenced code block of 5-8 concrete assertions covering the examples from the photo plus
-the edge cases you identified. They must be runnable against your solution as written.
-
-## Variations
-Two or three realistic follow-ups an interviewer would ask next, each with a one-to-two
-sentence sketch of how the solution changes.`,
+${INTERVIEW_FORMAT(language)}`,
   },
 };
 
@@ -223,13 +243,14 @@ export function costOf(model: string | null, inputTokens: number, outputTokens: 
 }
 
 /**
- * Rough cost before a pass runs, for the button that starts it. Measured on a
- * real 1600px problem photo: ~5.9k input tokens whichever mode runs; output is
- * what separates them (Fine's high effort spends most of it on thinking).
+ * Rough cost before a pass runs, for the button that starts it. Input is ~6.4k
+ * tokens whichever mode runs; output is what separates them, and the ladder of
+ * solutions made output the dominant term (Fine's high effort spends most of
+ * its own on thinking, which bills at the output rate).
  */
 export const TYPICAL_COST: Record<Mode, number> = {
-  medium: 0.023,
-  fine: 0.15,
+  medium: 0.058,
+  fine: 0.18,
 };
 
 export function formatCost(usd: number): string {
