@@ -5,7 +5,7 @@ import CaptureCard from './CaptureCard';
 import HistoryList from './HistoryList';
 import ModeTabs from './ModeTabs';
 import ResultPanel from './ResultPanel';
-import { AUTO_MODES, DEFAULT_MODE, MODE_ORDER, MODES } from '@/lib/modes';
+import { DEFAULT_MODE, MODE_ORDER, MODES } from '@/lib/modes';
 import { compressImage, deviceLabel, uuid } from '@/lib/image';
 import { useI18n } from '@/lib/i18n';
 import { getBrowserClient } from '@/lib/supabase/client';
@@ -116,15 +116,10 @@ export default function Workspace({ userId, email }: Props) {
         setResultsBySub(map);
         setActiveId((cur) => cur ?? list[0].id);
 
-        // Resume anything that never started — e.g. you took the photo, locked
-        // the phone before the request went out, and opened your laptop later.
-        // AUTO_MODES only: a queued Fine is one the user has not asked for yet,
-        // and resuming it here would quietly spend the money they avoided.
-        for (const s of list.slice(0, 5)) {
-          for (const mode of AUTO_MODES) {
-            if ((map[s.id]?.[mode]?.status ?? 'queued') === 'queued') kick(s.id, mode);
-          }
-        }
+        // Nothing is resumed here on purpose. A queued row is one nobody has
+        // pressed a button for, and starting it on page load would spend money
+        // the user did not ask to spend. If a request was lost — phone locked
+        // before it went out — the tab still offers the button.
       }
       setLoading(false);
     })();
@@ -215,7 +210,7 @@ export default function Workspace({ userId, email }: Props) {
 
   // -------------------------------------------------------------- upload --
   const handleFiles = useCallback(
-    async (files: File[]) => {
+    async (files: File[], mode: Mode) => {
       if (!files.length) return;
       setUploading(true);
       setUploadError(null);
@@ -260,7 +255,8 @@ export default function Workspace({ userId, email }: Props) {
         });
         if (subErr) throw subErr;
 
-        // A row per mode either way — Fine sits queued until it is asked for.
+        // A row per mode. The one you pressed starts now; the other sits
+        // queued on its tab with its price on it, for whenever you want it.
         const { error: resErr } = await supabase.from('results').insert(
           MODE_ORDER.map((m) => ({ submission_id: id, user_id: userId, mode: m }))
         );
@@ -269,10 +265,10 @@ export default function Workspace({ userId, email }: Props) {
         // Optimistic — realtime will confirm a beat later.
         setSubmissions((prev) => [submission, ...prev]);
         setActiveId(id);
-        setActiveMode(DEFAULT_MODE);
+        setActiveMode(mode);
         setUploading(false);
 
-        for (const mode of AUTO_MODES) kick(id, mode);
+        kick(id, mode);
       } catch (err) {
         setUploading(false);
         setUploadError(err instanceof Error ? err.message : 'Upload failed');

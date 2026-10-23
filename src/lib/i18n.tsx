@@ -36,13 +36,13 @@ const EN = {
   'capture.ready': '{n} photo{s} ready',
   'capture.max': ' · max {n}',
   'capture.clear': 'Clear',
-  'capture.solveOne': 'Solve this problem →',
-  'capture.solveMany': 'Solve these {n} pages →',
+  'capture.solveWith': 'Solve with {mode}',
+
   'capture.uploading': 'Uploading…',
   'capture.hintMulti':
     'All the photos are read together as one problem — shoot a long question across several screens.',
   'capture.hintSingle':
-    'Add up to {n} photos of the same problem, then hit Solve. Medium runs straight away; Fine is the expensive one, so you start it from its tab when you want it.',
+    'Add up to {n} photos of the same problem, then pick a model. Whichever you press is the one that runs — the other waits on its tab.',
   'capture.removePhoto': 'Remove photo {n}',
 
   'history.heading': 'History',
@@ -60,10 +60,9 @@ const EN = {
 
   'panel.emptyTitle': 'No problem captured yet',
   'panel.emptyBody':
-    'Add a photo of a question on your phone. Medium starts straight away and the answer lands here on every device you are signed in on.',
+    'Add a photo of a question on your phone and pick a model. The answer lands here on every device you are signed in on.',
   'panel.queued': 'Queued',
-  'panel.onDemandBody':
-    '{mode} runs on the most capable model and costs several times a Medium pass, so it only runs when you ask.',
+  'panel.onDemandBody': 'Nothing runs until you ask. Start {mode} on this problem:',
   'panel.startMode': 'Run {mode}',
   'panel.estimatedCost': 'about {cost}',
   'panel.tokens': '{in} in / {out} out',
@@ -80,8 +79,8 @@ const EN = {
   'tabs.queued': 'queued',
   'tabs.failed': 'failed',
 
-  'mode.medium.tagline': 'Insight, approach, code · runs on upload',
-  'mode.fine.tagline': 'Deep analysis · on demand',
+  'mode.medium.tagline': 'Sonnet 5 · the everyday answer',
+  'mode.fine.tagline': 'Opus 5 · same format, stronger model',
 
   'locale.switch': '中文',
 } as const;
@@ -112,12 +111,12 @@ const ZH: Record<StringKey, string> = {
   'capture.ready': '已選 {n} 張',
   'capture.max': ' · 上限 {n} 張',
   'capture.clear': '清空',
-  'capture.solveOne': '開始解題 →',
-  'capture.solveMany': '解這 {n} 頁 →',
+  'capture.solveWith': '用 {mode} 解',
+
   'capture.uploading': '上傳中…',
   'capture.hintMulti': '所有照片會被當成同一題一起讀 — 長題目可以分幾個畫面拍。',
   'capture.hintSingle':
-    '同一題最多可加 {n} 張照片，選完再按開始解題。Medium 會立刻跑；Fine 比較貴，需要時再到它的分頁手動啟動。',
+    '同一題最多可加 {n} 張照片，選完再決定用哪個模型。按哪個就跑哪個，另一個會在它的分頁上等你。',
   'capture.removePhoto': '移除第 {n} 張',
 
   'history.heading': '歷史紀錄',
@@ -135,9 +134,9 @@ const ZH: Record<StringKey, string> = {
 
   'panel.emptyTitle': '尚未拍攝任何題目',
   'panel.emptyBody':
-    '用手機拍下題目。Medium 會立刻開始，結果會出現在你所有已登入的裝置上。',
+    '用手機拍下題目，再選一個模型。結果會出現在你所有已登入的裝置上。',
   'panel.queued': '排隊中',
-  'panel.onDemandBody': '{mode} 使用最強的模型，費用是 Medium 的好幾倍，所以只在你要求時才會跑。',
+  'panel.onDemandBody': '沒有東西會自己跑。用 {mode} 解這一題：',
   'panel.startMode': '執行 {mode}',
   'panel.estimatedCost': '約 {cost}',
   'panel.tokens': '輸入 {in} / 輸出 {out}',
@@ -154,8 +153,8 @@ const ZH: Record<StringKey, string> = {
   'tabs.queued': '排隊中',
   'tabs.failed': '失敗',
 
-  'mode.medium.tagline': '思路、解法、程式碼 · 上傳即跑',
-  'mode.fine.tagline': '深入分析 · 手動啟動',
+  'mode.medium.tagline': 'Sonnet 5 · 日常夠用',
+  'mode.fine.tagline': 'Opus 5 · 同樣格式，更強的模型',
 
   'locale.switch': 'EN',
 };

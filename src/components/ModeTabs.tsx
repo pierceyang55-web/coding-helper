@@ -1,6 +1,6 @@
 'use client';
 
-import { AUTO_MODES, MODES, MODE_ORDER, TYPICAL_COST, costOf, formatCost } from '@/lib/modes';
+import { MODES, MODE_ORDER, TYPICAL_COST, costOf, formatCost } from '@/lib/modes';
 import { useI18n } from '@/lib/i18n';
 import type { Mode, Result } from '@/lib/types';
 
@@ -25,14 +25,13 @@ function StatusChip({ r, mode, now }: { r: Result | undefined; mode: Mode; now: 
   const secs = ms == null ? null : (ms / 1000).toFixed(1);
 
   if (!r || r.status === 'queued') {
-    // For a mode that waits to be asked, the price is the useful thing to show.
-    if (!AUTO_MODES.includes(mode))
-      return (
-        <span className="text-[11px] tabular-nums text-ink-500">
-          ~{formatCost(TYPICAL_COST[mode])}
-        </span>
-      );
-    return <span className="text-[11px] tabular-nums text-ink-600">{t('tabs.queued')}</span>;
+    // Nothing starts by itself, so a queued tab is an offer. The price is the
+    // useful thing on it, not the word "queued".
+    return (
+      <span className="text-[11px] tabular-nums text-ink-500">
+        ~{formatCost(TYPICAL_COST[mode])}
+      </span>
+    );
   }
 
   if (r.status === 'streaming')

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Markdown from './Markdown';
-import { AUTO_MODES, MODES, TYPICAL_COST, costOf, formatCost } from '@/lib/modes';
+import { MODES, TYPICAL_COST, costOf, formatCost } from '@/lib/modes';
 import { useI18n } from '@/lib/i18n';
 import type { Mode, Result } from '@/lib/types';
 
@@ -79,47 +79,27 @@ export default function ResultPanel({ mode, result, hasSubmission, onRun }: Prop
   }
 
   if (!result || result.status === 'queued') {
-    // A queued pass that never auto-starts is waiting on the user, not on a
-    // worker — so offer the button and the price rather than a spinner.
-    const onDemand = !AUTO_MODES.includes(mode);
-
     return (
       <div className="flex h-full flex-col items-center justify-center px-6 py-16 text-center">
-        {onDemand ? (
-          <>
-            <p className="max-w-xs text-xs leading-relaxed text-ink-500">
-              {t('panel.onDemandBody', { mode: cfg.label })}
-            </p>
-            <button
-              onClick={onRun}
-              className="mt-4 rounded-xl px-4 py-2.5 text-sm font-semibold transition"
-              style={{
-                backgroundColor: `${cfg.color}1f`,
-                color: cfg.color,
-                boxShadow: `inset 0 0 0 1px ${cfg.color}66`,
-              }}
-            >
-              {t('panel.startMode', { mode: cfg.label })}
-            </button>
-            <p className="mt-2.5 text-[11px] text-ink-600">
-              {cfg.model} · {t('panel.estimatedCost', { cost: formatCost(TYPICAL_COST[mode]) })}
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="mb-3 flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="h-1.5 w-1.5 animate-pulse-bar rounded-full"
-                  style={{ backgroundColor: cfg.color, animationDelay: `${i * 180}ms` }}
-                />
-              ))}
-            </div>
-            <p className="text-sm text-ink-300">{t('panel.queued')}</p>
-            <p className="mt-1 text-xs text-ink-600">{cfg.model}</p>
-          </>
-        )}
+        {/* Nothing runs on its own, so a queued tab is always an offer: the
+            price up front, and one button that spends it. */}
+        <p className="max-w-xs text-xs leading-relaxed text-ink-500">
+          {t('panel.onDemandBody', { mode: cfg.label })}
+        </p>
+        <button
+          onClick={onRun}
+          className="mt-4 rounded-xl px-4 py-2.5 text-sm font-semibold transition"
+          style={{
+            backgroundColor: `${cfg.color}1f`,
+            color: cfg.color,
+            boxShadow: `inset 0 0 0 1px ${cfg.color}66`,
+          }}
+        >
+          {t('panel.startMode', { mode: cfg.label })}
+        </button>
+        <p className="mt-2.5 text-[11px] text-ink-600">
+          {cfg.model} · {t('panel.estimatedCost', { cost: formatCost(TYPICAL_COST[mode]) })}
+        </p>
       </div>
     );
   }

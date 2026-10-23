@@ -219,13 +219,6 @@ export const MODE_ORDER: Mode[] = ['medium', 'fine'];
 /** The tab shown when a new submission arrives. */
 export const DEFAULT_MODE: Mode = 'medium';
 
-/**
- * Modes that fire automatically on upload. Fine is left out on purpose: it runs
- * on Opus at high effort and costs roughly six times a Medium pass — about 80%
- * of the bill when both run. You start it from its tab when you want it.
- */
-export const AUTO_MODES: Mode[] = ['medium'];
-
 /** USD per million tokens, matching the model each mode uses. */
 const PRICES: Record<string, { input: number; output: number }> = {
   'claude-opus-5': { input: 5, output: 25 },

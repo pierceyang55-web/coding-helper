@@ -1,14 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { MODES, MODE_ORDER, TYPICAL_COST, formatCost } from '@/lib/modes';
 import { useI18n } from '@/lib/i18n';
-import { LANGUAGES, MAX_IMAGES } from '@/lib/types';
+import { LANGUAGES, MAX_IMAGES, type Mode } from '@/lib/types';
 
 interface Props {
   language: string;
   onLanguageChange: (v: string) => void;
-  /** Called once, with every photo of the problem, when the user confirms. */
-  onSubmit: (files: File[]) => void;
+  /**
+   * Called once, with every photo of the problem and the mode to run it with.
+   * Which button you press is which model solves it — nothing starts on its
+   * own, so the spend is always something you chose.
+   */
+  onSubmit: (files: File[], mode: Mode) => void;
   busy: boolean;
   error: string | null;
   /**
@@ -92,12 +97,12 @@ export default function CaptureCard({
     setPending([]);
   }
 
-  function submit() {
+  function submit(mode: Mode) {
     if (!pending.length || busy) return;
     const files = pending.map((p) => p.file);
     // The parent owns the files from here; drop our previews.
     clearAll();
-    onSubmit(files);
+    onSubmit(files, mode);
   }
 
   return (
@@ -195,22 +200,35 @@ export default function CaptureCard({
             ))}
           </ul>
 
-          <button
-            onClick={submit}
-            disabled={busy}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-3 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-500/40 transition hover:bg-emerald-500/25 disabled:opacity-50"
-          >
-            {busy ? (
-              <>
-                <span className="h-1.5 w-1.5 animate-pulse-bar rounded-full bg-emerald-300" />
-                {t('capture.uploading')}
-              </>
-            ) : pending.length > 1 ? (
-              t('capture.solveMany', { n: pending.length })
-            ) : (
-              t('capture.solveOne')
-            )}
-          </button>
+          {busy ? (
+            <div className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-ink-850 px-4 py-3 text-sm font-medium text-ink-300 ring-1 ring-ink-700">
+              <span className="h-1.5 w-1.5 animate-pulse-bar rounded-full bg-ink-300" />
+              {t('capture.uploading')}
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {MODE_ORDER.map((mode) => {
+                const cfg = MODES[mode];
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => submit(mode)}
+                    className="flex w-full items-center justify-between gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition"
+                    style={{
+                      backgroundColor: `${cfg.color}1f`,
+                      color: cfg.color,
+                      boxShadow: `inset 0 0 0 1px ${cfg.color}66`,
+                    }}
+                  >
+                    <span>{t('capture.solveWith', { mode: cfg.label })}</span>
+                    <span className="text-[11px] font-normal tabular-nums opacity-70">
+                      ~{formatCost(TYPICAL_COST[mode])}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
