@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "codinglesson",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["C:/Users/steve/AppData/Local/Temp/claude/C--Users-steve-Desktop-Claude-CodingHelper/c4c5df08-8796-44a4-9024-3085d82e1da9/scratchpad/serve_clean.py", "C:/Users/steve/Desktop/Claude/CodingLesson/public", "5000"],
+      "port": 5000
+    },
+    {
+      "name": "codinglesson-lc56-split",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["C:/Users/steve/AppData/Local/Temp/claude/C--Users-steve-Desktop-Claude-CodingHelper/c4c5df08-8796-44a4-9024-3085d82e1da9/scratchpad/wt-lc56s/tools/serve.py", "5060"],
+      "port": 5060
+    },
+    {
+      "name": "codinglesson-backfill",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["C:/Users/steve/AppData/Local/Temp/claude/C--Users-steve-Desktop-Claude-CodingHelper/b5a7e6ea-100c-409c-a5be-1b50c74fa6cc/scratchpad/wt-backfill/tools/serve.py", "5057"],
+      "port": 5057
+    }
+  ]
+}

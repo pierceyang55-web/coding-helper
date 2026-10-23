@@ -22,8 +22,9 @@ const EN = {
   'login.unlock': 'Unlock',
   'login.unlocking': 'Unlocking…',
   'login.wrong': 'Wrong passcode.',
+  'login.network': 'Could not reach the server. Check your connection and try again.',
   'login.notConfigured':
-    'NEXT_PUBLIC_APP_EMAIL is not set on this deployment, so there is no account to sign in to.',
+    'APP_EMAIL is not set on this deployment, so there is no account to sign in to.',
   'login.hint':
     'Once per device — the session refreshes itself after that. Unlock on your phone and your computer and results appear on both at once.',
 
@@ -98,7 +99,8 @@ const ZH: Record<StringKey, string> = {
   'login.unlock': '解鎖',
   'login.unlocking': '解鎖中…',
   'login.wrong': '密碼錯誤。',
-  'login.notConfigured': '這份部署沒有設定 NEXT_PUBLIC_APP_EMAIL，沒有可以登入的帳號。',
+  'login.network': '連不到伺服器，確認網路後再試一次。',
+  'login.notConfigured': '這份部署沒有設定 APP_EMAIL，沒有可以登入的帳號。',
   'login.hint': '每台裝置只需要輸入一次，之後 session 會自動續期。手機和電腦都解鎖，結果就會同時出現在兩邊。',
 
   'capture.heading': '新題目',

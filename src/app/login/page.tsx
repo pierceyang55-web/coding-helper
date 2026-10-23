@@ -3,7 +3,6 @@
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
-import { getBrowserClient } from '@/lib/supabase/client';
 
 /**
  * There is one user. So there are no accounts here — just a passcode.
@@ -14,12 +13,11 @@ import { getBrowserClient } from '@/lib/supabase/client';
  * database, the storage bucket and /api/solve (which spends real money) are all
  * open to whoever finds the URL.
  *
- * So the session stays exactly as it was, and only the way you obtain it
- * changes: the passcode is the password of a single Supabase user whose email
- * is a build-time constant. Same cookie, same refresh, same RLS — no inbox.
+ * So the session stays exactly as it was and only the way you obtain it
+ * changes. The sign-in happens in /api/login so the account's email never
+ * reaches the browser — see that route. No email is sent, which is the point:
+ * the provider's magic-link rate limit does not apply.
  */
-const APP_EMAIL = process.env.NEXT_PUBLIC_APP_EMAIL ?? '';
-
 function LoginForm() {
   const params = useSearchParams();
   const next = params.get('next') || '/app';
@@ -31,33 +29,32 @@ function LoginForm() {
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
-    if (!APP_EMAIL) {
-      setError(t('login.notConfigured'));
-      return;
-    }
-
     setBusy(true);
     setError(null);
 
-    const supabase = getBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: APP_EMAIL,
-      password: passcode,
-    });
+    let res: Response;
+    try {
+      res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode }),
+      });
+    } catch {
+      setBusy(false);
+      setError(t('login.network'));
+      return;
+    }
 
-    if (error) {
+    if (!res.ok) {
       setBusy(false);
       setPasscode('');
-      // Supabase says "Invalid login credentials" for a wrong password. With
-      // one fixed account that can only mean the passcode.
-      setError(
-        /invalid login credentials/i.test(error.message) ? t('login.wrong') : error.message
-      );
+      const body = await res.json().catch(() => ({ error: '' }));
+      setError(body.error === 'not_configured' ? t('login.notConfigured') : t('login.wrong'));
       return;
     }
 
     // Full navigation, not a soft one: the server has to read the cookie the
-    // client just wrote before it decides whether /app is allowed.
+    // route just wrote before it decides whether /app is allowed.
     window.location.replace(next);
   }
 

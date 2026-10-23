@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Communication
 
-The user writes in Traditional Chinese (繁體中文). Reply mainly in Traditional Chinese, keep key technical terms in English, and write code, identifiers and code comments in English.
+The user writes in Traditional Chinese (繁體中文). **Always explain only in Traditional Chinese** — never switch to English for the explanation, even after long English tool output or agent reports. Keep technical terms in English (the user needs the English terms for interviews), and write code, identifiers and code comments in English.
 
 ## Commands
 
