@@ -16,22 +16,46 @@ interface Props {
   email: string;
 }
 
-/**
- * Fire a solve pass. Never awaited: the answer comes back over realtime, so the
- * UI is identical whether this device started the job or another one did.
- * The route claims the row atomically, so duplicate kicks are harmless.
- */
-function kick(submissionId: string, mode: Mode) {
-  fetch('/api/solve', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ submissionId, mode }),
-  }).catch(() => {});
-}
-
 export default function Workspace({ userId, email }: Props) {
   const supabase = useMemo(() => getBrowserClient(), []);
   const { t, locale, setLocale } = useI18n();
+
+  /**
+   * Fire a solve pass. The answer comes back over realtime, so the UI is
+   * identical whether this device started the job or another one did, and the
+   * route claims the row atomically so duplicate kicks are harmless.
+   *
+   * If the request never lands, say so. This used to swallow the failure, and
+   * a misconfigured server looked exactly like a slow one: the tab sat on
+   * "queued" forever with nothing anywhere to explain it. Only a row still
+   * `queued` is marked — anything further along belongs to a run in flight.
+   */
+  const kick = useCallback(
+    async (submissionId: string, mode: Mode) => {
+      let message: string | null = null;
+
+      try {
+        const res = await fetch('/api/solve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ submissionId, mode }),
+        });
+        if (res.ok) return;
+        const body = await res.json().catch(() => ({}) as { error?: string });
+        message = body.error ?? `The solver returned HTTP ${res.status}`;
+      } catch (err) {
+        message = err instanceof Error ? err.message : 'Could not reach the solver';
+      }
+
+      await supabase
+        .from('results')
+        .update({ status: 'error', error: message, updated_at: new Date().toISOString() })
+        .eq('submission_id', submissionId)
+        .eq('mode', mode)
+        .eq('status', 'queued');
+    },
+    [supabase]
+  );
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [resultsBySub, setResultsBySub] = useState<
@@ -98,7 +122,7 @@ export default function Workspace({ userId, email }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, [supabase, kick]);
 
   // ------------------------------------------------------------ realtime --
   useEffect(() => {
