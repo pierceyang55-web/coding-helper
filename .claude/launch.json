@@ -8,6 +8,12 @@
       "port": 5000
     },
     {
+      "name": "codinglesson-home",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["C:/Users/steve/AppData/Local/Temp/claude/C--Users-steve-Desktop-Claude-CodingHelper/c4c5df08-8796-44a4-9024-3085d82e1da9/scratchpad/serve_clean.py", "C:/Users/steve/AppData/Local/Temp/claude/C--Users-steve-Desktop-Claude-CodingHelper/c4c5df08-8796-44a4-9024-3085d82e1da9/scratchpad/wt-home/public", "5062"],
+      "port": 5062
+    },
+    {
       "name": "codinglesson-lc56-split",
       "runtimeExecutable": "python",
       "runtimeArgs": ["C:/Users/steve/AppData/Local/Temp/claude/C--Users-steve-Desktop-Claude-CodingHelper/c4c5df08-8796-44a4-9024-3085d82e1da9/scratchpad/wt-lc56s/tools/serve.py", "5060"],

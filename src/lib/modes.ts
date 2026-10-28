@@ -146,8 +146,18 @@ Derive both bounds — count the work, do not assert the answer. Three to six li
 
 CODE RULES
 - Use the standard class/method signature for the problem.
-- EVERY line gets a trailing comment saying what that line does. Align the comments
-  into a column. Keep each one short — a clause, not a sentence.
+- Write it the way you would have to defend it at a whiteboard. Every step the
+  interviewer could stop you on has to be a step you can point at.
+- NO clever one-liners. Specifically: no list/dict/set comprehensions doing real work,
+  no nested or chained ternaries, no walrus operator, no several statements on one
+  line, no long method chains, no tricks that trade a line of code for a sentence of
+  explanation. Spell the loop out. An extra named variable costs nothing and is one
+  more thing you can name out loud.
+- Comment the lines that carry the algorithm: the invariant, the non-obvious index or
+  bound, the edge case being handled, the reason a step exists. Say WHY, not what.
+  Leave the self-evident lines bare — a comment on \`return best\` is noise, and noise
+  is what makes real comments easy to skip.
+- Align trailing comments into a column so the code still reads as code.
 - The code must run as written. No pseudocode, no elisions.
 
 HTML RULES — get these exactly right or the page renders as literal text:
