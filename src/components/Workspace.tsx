@@ -18,6 +18,12 @@ interface Props {
 
 export default function Workspace({ userId, email }: Props) {
   const supabase = useMemo(() => getBrowserClient(), []);
+
+  /**
+   * Passes to poll for, as `submissionId:mode`. Declared up here because kick()
+   * adds to it; see the poll-fallback effect below for why it exists.
+   */
+  const [watching, setWatching] = useState<string[]>([]);
   const { t, locale, setLocale } = useI18n();
 
   /**
@@ -32,6 +38,13 @@ export default function Workspace({ userId, email }: Props) {
    */
   const kick = useCallback(
     async (submissionId: string, mode: Mode) => {
+      // Watch this pass until it settles, so the answer arrives even if
+      // Realtime never delivers a thing.
+      setWatching((prev) => {
+        const key = `${submissionId}:${mode}`;
+        return prev.includes(key) ? prev : [...prev, key];
+      });
+
       let message: string | null = null;
 
       try {
@@ -147,44 +160,128 @@ export default function Workspace({ userId, email }: Props) {
   }, [supabase, kick]);
 
   // ------------------------------------------------------------ realtime --
+  //
+  // The token has to reach Realtime before the channel subscribes. Realtime
+  // runs the RLS policies against whatever token the socket carries, and the
+  // browser client reads the session out of cookies asynchronously — subscribe
+  // first and the socket is still anonymous, `auth.uid()` is null, every row
+  // fails `auth.uid() = user_id`, and the channel joins successfully while
+  // delivering nothing at all. Which is the worst possible failure: it looks
+  // exactly like a slow answer.
   useEffect(() => {
-    const channel = supabase
-      .channel('coding-helper-sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'submissions', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const row = payload.new as Submission;
-          if (!row?.id) return;
-          setSubmissions((prev) => {
-            const rest = prev.filter((s) => s.id !== row.id);
-            return [row, ...rest].sort((a, b) => b.created_at.localeCompare(a.created_at));
-          });
-          // A photo taken on another device jumps straight to the front here.
-          if (payload.eventType === 'INSERT' && activeIdRef.current !== row.id) {
-            setActiveId(row.id);
-            setActiveMode(DEFAULT_MODE);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'results', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const row = payload.new as Result;
-          if (!row?.id) return;
-          setResultsBySub((prev) => ({
-            ...prev,
-            [row.submission_id]: { ...(prev[row.submission_id] ?? {}), [row.mode]: row },
-          }));
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+
+      channel = subscribe();
+    })();
+
+    // A refreshed token has to be handed over too, or delivery stops the first
+    // time the hour-long access token rolls over mid-answer.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) supabase.realtime.setAuth(session.access_token);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      sub.subscription.unsubscribe();
+      if (channel) supabase.removeChannel(channel);
     };
+
+    function subscribe() {
+      return supabase
+        .channel('coding-helper-sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'submissions', filter: `user_id=eq.${userId}` },
+          (payload) => {
+            const row = payload.new as Submission;
+            if (!row?.id) return;
+            setSubmissions((prev) => {
+              const rest = prev.filter((s) => s.id !== row.id);
+              return [row, ...rest].sort((a, b) => b.created_at.localeCompare(a.created_at));
+            });
+            // A photo taken on another device jumps straight to the front here.
+            if (payload.eventType === 'INSERT' && activeIdRef.current !== row.id) {
+              setActiveId(row.id);
+              setActiveMode(DEFAULT_MODE);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'results', filter: `user_id=eq.${userId}` },
+          (payload) => {
+            const row = payload.new as Result;
+            if (!row?.id) return;
+            setResultsBySub((prev) => ({
+              ...prev,
+              [row.submission_id]: { ...(prev[row.submission_id] ?? {}), [row.mode]: row },
+            }));
+          }
+        )
+        .subscribe();
+    }
   }, [supabase, userId]);
+
+  // -------------------------------------------------------- poll fallback --
+  //
+  // Realtime is the fast path, not the only one. It can go quiet for reasons
+  // the page cannot see — a token that did not land, a phone that slept, a
+  // network that dropped the socket, a WebSocket a captive portal blocked —
+  // and when it does the answer is sitting in Postgres while the tab shows
+  // nothing. So while a pass is in flight, ask.
+  //
+  // This runs only between pressing a button and that pass reaching a terminal
+  // status, so an idle tab makes no requests at all.
+
+  useEffect(() => {
+    if (!watching.length) return;
+
+    const subIds = Array.from(new Set(watching.map((w) => w.split(':')[0])));
+
+    const poll = async () => {
+      const { data } = await supabase.from('results').select('*').in('submission_id', subIds);
+      if (!data?.length) return;
+
+      const rows = data as Result[];
+      setResultsBySub((prev) => {
+        const next = { ...prev };
+        for (const r of rows) {
+          next[r.submission_id] = { ...(next[r.submission_id] ?? {}), [r.mode]: r };
+        }
+        return next;
+      });
+
+      // The title is written by whichever pass reads it first, and it arrives
+      // over the same channel, so it needs the same fallback.
+      const { data: subs } = await supabase
+        .from('submissions')
+        .select('*')
+        .in('id', subIds);
+      if (subs?.length) {
+        setSubmissions((prev) =>
+          prev.map((s) => (subs as Submission[]).find((n) => n.id === s.id) ?? s)
+        );
+      }
+
+      const settled = new Set(
+        rows
+          .filter((r) => r.status !== 'queued' && r.status !== 'streaming')
+          .map((r) => `${r.submission_id}:${r.mode}`)
+      );
+      if (settled.size) setWatching((prev) => prev.filter((w) => !settled.has(w)));
+    };
+
+    const t = setInterval(poll, 2000);
+    return () => clearInterval(t);
+  }, [watching, supabase]);
 
   // ------------------------------------------------------- ticking clock --
   const activeResults = activeId ? resultsBySub[activeId] ?? {} : {};
