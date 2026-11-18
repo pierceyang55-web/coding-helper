@@ -88,15 +88,22 @@ export default function Workspace({ userId, email }: Props) {
   const activeIdRef = useRef<string | null>(null);
   activeIdRef.current = activeId;
 
-  // Filled in by CaptureCard. The capture controls live in the left column and
-  // a four-solution answer is long, so without this the way to start the next
-  // problem is a long scroll back up.
-  const openPickerRef = useRef<(() => void) | null>(null);
-
+  /**
+   * Starting a new problem is just letting go of the active one: with nothing
+   * selected the next upload creates a submission, and with something selected
+   * it appends to it. One piece of state decides both, so the two paths cannot
+   * disagree.
+   *
+   * It asks first because the photos you staged go with it, and because the
+   * alternative — silently starting over when you meant to add a page — wastes
+   * a whole pass.
+   */
   function newProblem() {
+    if (!window.confirm(t('capture.confirmNew'))) return;
     setHistoryOpen(false);
+    setActiveId(null);
+    setUploadError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    openPickerRef.current?.();
   }
 
   // Escape closes the drawer, and the body does not scroll behind it.
@@ -329,15 +336,22 @@ export default function Workspace({ userId, email }: Props) {
       setUploading(true);
       setUploadError(null);
 
+      // Something selected means these are more pages of it, not a new
+      // question. Letting go of it (the New problem button) is what starts
+      // one.
+      const appendTo = activeIdRef.current;
+
       try {
-        const id = uuid();
+        const id = appendTo ?? uuid();
 
         // Compress and upload every page in parallel — on a phone the upload,
         // not the compression, is the wall, and these are independent objects.
+        // The suffix is a fresh uuid, not an index, so appending to a problem
+        // cannot collide with the pages already in the bucket.
         const paths = await Promise.all(
-          files.map(async (file, i) => {
+          files.map(async (file) => {
             const { blob } = await compressImage(file);
-            const path = `${userId}/${id}-${i}.jpg`;
+            const path = `${userId}/${id}-${uuid()}.jpg`;
             const { error: upErr } = await supabase.storage
               .from('problems')
               .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
@@ -345,6 +359,56 @@ export default function Workspace({ userId, email }: Props) {
             return path;
           })
         );
+
+        if (appendTo) {
+          // Re-read rather than trust local state: the other device may have
+          // added a page since this one last heard about it.
+          const { data: current, error: readErr } = await supabase
+            .from('submissions')
+            .select('image_path, image_paths')
+            .eq('id', appendTo)
+            .single();
+          if (readErr) throw readErr;
+
+          const merged = [...imagePathsOf(current as Submission), ...paths];
+
+          const { error: updErr } = await supabase
+            .from('submissions')
+            .update({ image_paths: merged, title: null })
+            .eq('id', appendTo);
+          if (updErr) throw updErr;
+
+          // Every existing answer was written without these pages, so it is
+          // stale. Clear them all; the one you pressed re-runs now and the
+          // other goes back to offering its button.
+          const { error: resetErr } = await supabase
+            .from('results')
+            .update({
+              status: 'queued',
+              content: '',
+              error: null,
+              model: null,
+              elapsed_ms: null,
+              input_tokens: null,
+              output_tokens: null,
+              started_at: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('submission_id', appendTo);
+          if (resetErr) throw resetErr;
+
+          setSubmissions((prev) =>
+            prev.map((s) =>
+              s.id === appendTo ? { ...s, image_paths: merged, title: null } : s
+            )
+          );
+          setResultsBySub((prev) => ({ ...prev, [appendTo]: {} }));
+          setActiveMode(mode);
+          setUploading(false);
+
+          kick(appendTo, mode);
+          return;
+        }
 
         const submission: Submission = {
           id,
@@ -388,7 +452,7 @@ export default function Workspace({ userId, email }: Props) {
         setUploadError(err instanceof Error ? err.message : 'Upload failed');
       }
     },
-    [language, supabase, userId]
+    [language, locale, supabase, userId, kick]
   );
 
   // -------------------------------------------------------------- re-run --
@@ -442,15 +506,6 @@ export default function Workspace({ userId, email }: Props) {
 
           <h1 className="text-sm font-semibold tracking-tight">Coding Helper</h1>
 
-          <button
-            onClick={newProblem}
-            disabled={uploading}
-            className="ml-3 flex items-center gap-1.5 rounded-lg bg-accent-medium/15 px-3 py-1.5 text-xs font-semibold text-accent-medium ring-1 ring-accent-medium/40 transition hover:bg-accent-medium/25 disabled:opacity-50"
-          >
-            <span className="text-sm leading-none">+</span>
-            {t('app.newProblem')}
-          </button>
-
           <span className="ml-auto hidden text-xs text-ink-600 sm:block">{email}</span>
 
           {/* Interface language only — switching costs nothing. The answer's
@@ -479,7 +534,16 @@ export default function Workspace({ userId, email }: Props) {
             language={language}
             onLanguageChange={setLanguage}
             onSubmit={handleFiles}
-            openPickerRef={openPickerRef}
+            followUp={
+              activeSubmission
+                ? {
+                    id: activeSubmission.id,
+                    title: activeSubmission.title,
+                    photoCount: imagePathsOf(activeSubmission).length,
+                  }
+                : null
+            }
+            onNewProblem={newProblem}
             busy={uploading}
             error={uploadError}
           />

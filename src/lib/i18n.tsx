@@ -39,11 +39,16 @@ const EN = {
   'capture.solveWith': 'Solve with {mode}',
 
   'capture.uploading': 'Uploading…',
-  'capture.hintMulti':
-    'All the photos are read together as one problem — shoot a long question across several screens.',
   'capture.hintSingle':
     'Add up to {n} photos of the same problem, then pick a model. Whichever you press is the one that runs — the other waits on its tab.',
   'capture.removePhoto': 'Remove photo {n}',
+  'capture.addingTo': 'Adding to',
+  'capture.pagesSoFar': '{n} so far',
+  'capture.willStartNew': 'The next upload starts a new problem.',
+  'capture.hintFollowUp':
+    'These pages join the problem above and it is read again from the start, so the answers reset.',
+  'capture.confirmNew':
+    'Start a new problem? The current one is cleared from the workspace — it stays in your history — and any photos you picked are dropped.',
 
   'history.heading': 'History',
   'history.open': 'Show history',
@@ -116,10 +121,14 @@ const ZH: Record<StringKey, string> = {
   'capture.solveWith': '用 {mode} 解',
 
   'capture.uploading': '上傳中…',
-  'capture.hintMulti': '所有照片會被當成同一題一起讀 — 長題目可以分幾個畫面拍。',
   'capture.hintSingle':
     '同一題最多可加 {n} 張照片，選完再決定用哪個模型。按哪個就跑哪個，另一個會在它的分頁上等你。',
   'capture.removePhoto': '移除第 {n} 張',
+  'capture.addingTo': '加到',
+  'capture.pagesSoFar': '已有 {n} 張',
+  'capture.willStartNew': '下次上傳會開一個新題目。',
+  'capture.hintFollowUp': '這些照片會併入上面那一題，整題重讀一次，所以現有答案會清空。',
+  'capture.confirmNew': '要開新題目嗎？目前這題會從工作區清掉（歷史紀錄還留著），已選的照片也會丟棄。',
 
   'history.heading': '歷史紀錄',
   'history.open': '顯示歷史紀錄',

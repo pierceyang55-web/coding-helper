@@ -17,11 +17,13 @@ interface Props {
   busy: boolean;
   error: string | null;
   /**
-   * Filled in with a function that opens the photo picker, so the header's
-   * "new problem" button can reach it. The card owns the file inputs; this
-   * hands out the one capability the header needs rather than lifting them.
+   * The problem these photos will be added to, or null when the next upload
+   * starts a fresh one. Uploading without clearing it is a follow-up: more
+   * pages of the same question, re-read together.
    */
-  openPickerRef?: React.MutableRefObject<(() => void) | null>;
+  followUp: { id: string; title: string | null; photoCount: number } | null;
+  /** Clears the active problem so the next upload starts a new one. */
+  onNewProblem: () => void;
 }
 
 interface Pending {
@@ -39,20 +41,27 @@ export default function CaptureCard({
   onSubmit,
   busy,
   error,
-  openPickerRef,
+  followUp,
+  onNewProblem,
 }: Props) {
   const { t } = useI18n();
   const libraryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<Pending[]>([]);
 
+  // Photos picked for one problem must not follow you to another. Switching
+  // problems — or starting a new one — drops whatever was staged.
+  const followUpId = followUp?.id ?? null;
   useEffect(() => {
-    if (!openPickerRef) return;
-    openPickerRef.current = () => libraryRef.current?.click();
-    return () => {
-      openPickerRef.current = null;
-    };
-  }, [openPickerRef]);
+    setPending((prev) => {
+      for (const p of prev) URL.revokeObjectURL(p.url);
+      return [];
+    });
+  }, [followUpId]);
+
+  // A follow-up shares the six-photo budget with the pages already attached.
+  const alreadyUsed = followUp?.photoCount ?? 0;
+  const room = Math.max(0, MAX_IMAGES - alreadyUsed - pending.length);
 
   // Object URLs are only freed when we say so — do it on unmount for whatever
   // is still queued. Individual removals revoke eagerly in `remove`.
@@ -65,7 +74,7 @@ export default function CaptureCard({
     []
   );
 
-  const full = pending.length >= MAX_IMAGES;
+  const full = room === 0;
 
   /** Selecting again appends, so you can mix library picks and fresh shots. */
   function add(e: React.ChangeEvent<HTMLInputElement>) {
@@ -74,8 +83,8 @@ export default function CaptureCard({
     if (!picked.length) return;
 
     setPending((prev) => {
-      const room = MAX_IMAGES - prev.length;
-      const next = picked.slice(0, room).map((file) => ({
+      const left = Math.max(0, MAX_IMAGES - alreadyUsed - prev.length);
+      const next = picked.slice(0, left).map((file) => ({
         key: `p${seq++}`,
         file,
         url: URL.createObjectURL(file),
@@ -159,6 +168,37 @@ export default function CaptureCard({
         📷 {t('capture.takePhoto')}
       </button>
 
+      {/* Where the next upload lands. Without saying it, "add a photo" is
+          ambiguous between another page of this question and a new one. */}
+      <div className="mt-3 flex items-center gap-2 rounded-lg bg-ink-900/80 px-3 py-2 ring-1 ring-ink-800">
+        <span className="min-w-0 flex-1 text-[11px] leading-snug text-ink-400">
+          {followUp ? (
+            <>
+              {t('capture.addingTo')}{' '}
+              <span className="font-medium text-ink-200">
+                {followUp.title ?? t('history.reading')}
+              </span>
+              <span className="text-ink-600">
+                {' '}
+                · {t('capture.pagesSoFar', { n: followUp.photoCount })}
+              </span>
+            </>
+          ) : (
+            <span className="text-ink-300">{t('capture.willStartNew')}</span>
+          )}
+        </span>
+
+        {followUp && (
+          <button
+            onClick={onNewProblem}
+            disabled={busy}
+            className="shrink-0 rounded-lg bg-accent-medium/15 px-2.5 py-1 text-[11px] font-semibold text-accent-medium ring-1 ring-accent-medium/40 transition hover:bg-accent-medium/25 disabled:opacity-50"
+          >
+            + {t('app.newProblem')}
+          </button>
+        )}
+      </div>
+
       {/* ------------------------------------------------- pending photos -- */}
       {pending.length > 0 && (
         <div className="mt-4">
@@ -233,9 +273,7 @@ export default function CaptureCard({
       )}
 
       <p className="mt-3 text-[11px] leading-relaxed text-ink-600">
-        {pending.length > 1
-          ? t('capture.hintMulti')
-          : t('capture.hintSingle', { n: MAX_IMAGES })}
+        {followUp ? t('capture.hintFollowUp') : t('capture.hintSingle', { n: MAX_IMAGES })}
       </p>
 
       {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
