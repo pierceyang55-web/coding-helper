@@ -22,8 +22,6 @@ interface Props {
    * pages of the same question, re-read together.
    */
   followUp: { id: string; title: string | null; photoCount: number } | null;
-  /** Clears the active problem so the next upload starts a new one. */
-  onNewProblem: () => void;
 }
 
 interface Pending {
@@ -42,7 +40,6 @@ export default function CaptureCard({
   busy,
   error,
   followUp,
-  onNewProblem,
 }: Props) {
   const { t } = useI18n();
   const libraryRef = useRef<HTMLInputElement>(null);
@@ -169,35 +166,24 @@ export default function CaptureCard({
       </button>
 
       {/* Where the next upload lands. Without saying it, "add a photo" is
-          ambiguous between another page of this question and a new one. */}
-      <div className="mt-3 flex items-center gap-2 rounded-lg bg-ink-900/80 px-3 py-2 ring-1 ring-ink-800">
-        <span className="min-w-0 flex-1 text-[11px] leading-snug text-ink-400">
-          {followUp ? (
-            <>
-              {t('capture.addingTo')}{' '}
-              <span className="font-medium text-ink-200">
-                {followUp.title ?? t('history.reading')}
-              </span>
-              <span className="text-ink-600">
-                {' '}
-                · {t('capture.pagesSoFar', { n: followUp.photoCount })}
-              </span>
-            </>
-          ) : (
-            <span className="text-ink-300">{t('capture.willStartNew')}</span>
-          )}
-        </span>
-
-        {followUp && (
-          <button
-            onClick={onNewProblem}
-            disabled={busy}
-            className="shrink-0 rounded-lg bg-accent-medium/15 px-2.5 py-1 text-[11px] font-semibold text-accent-medium ring-1 ring-accent-medium/40 transition hover:bg-accent-medium/25 disabled:opacity-50"
-          >
-            + {t('app.newProblem')}
-          </button>
+          ambiguous between another page of this question and a new one. The
+          button that releases the problem lives beside its title, top right. */}
+      <p className="mt-3 text-[11px] leading-snug text-ink-400">
+        {followUp ? (
+          <>
+            {t('capture.addingTo')}{' '}
+            <span className="font-medium text-ink-200">
+              {followUp.title ?? t('history.reading')}
+            </span>
+            <span className="text-ink-600">
+              {' '}
+              · {t('capture.pagesSoFar', { n: followUp.photoCount })}
+            </span>
+          </>
+        ) : (
+          <span className="text-ink-300">{t('capture.willStartNew')}</span>
         )}
-      </div>
+      </p>
 
       {/* ------------------------------------------------- pending photos -- */}
       {pending.length > 0 && (

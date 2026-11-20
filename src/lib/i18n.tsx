@@ -50,6 +50,9 @@ const EN = {
   'capture.confirmNew':
     'Start a new problem? The current one is cleared from the workspace — it stays in your history — and any photos you picked are dropped.',
 
+  'rail.collapse': 'Hide the sidebar',
+  'rail.expand': 'Show the sidebar',
+
   'history.heading': 'History',
   'history.open': 'Show history',
   'history.close': 'Close history',
@@ -129,6 +132,9 @@ const ZH: Record<StringKey, string> = {
   'capture.willStartNew': '下次上傳會開一個新題目。',
   'capture.hintFollowUp': '這些照片會併入上面那一題，整題重讀一次，所以現有答案會清空。',
   'capture.confirmNew': '要開新題目嗎？目前這題會從工作區清掉（歷史紀錄還留著），已選的照片也會丟棄。',
+
+  'rail.collapse': '收合側邊欄',
+  'rail.expand': '展開側邊欄',
 
   'history.heading': '歷史紀錄',
   'history.open': '顯示歷史紀錄',

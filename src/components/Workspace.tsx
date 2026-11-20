@@ -16,6 +16,24 @@ interface Props {
   email: string;
 }
 
+/** Whether the left rail is open, remembered per browser. */
+const RAIL_KEY = 'coding-helper.rail';
+
+/** Points the way the rail will move, not the way it is now. */
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+      <path
+        d={open ? 'M6.5 1.5 3 5l3.5 3.5' : 'M3.5 1.5 7 5l-3.5 3.5'}
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function Workspace({ userId, email }: Props) {
   const supabase = useMemo(() => getBrowserClient(), []);
 
@@ -85,6 +103,30 @@ export default function Workspace({ userId, email }: Props) {
   const [now, setNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
 
+  // The left rail on a wide screen. Server and first paint both render it
+  // open, so they match; a stored preference is applied right after mount.
+  const [railOpen, setRailOpen] = useState(true);
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(RAIL_KEY) === '0') setRailOpen(false);
+    } catch {
+      // Blocked storage — open is a fine default.
+    }
+  }, []);
+
+  function toggleRail() {
+    setRailOpen((open) => {
+      const next = !open;
+      try {
+        window.localStorage.setItem(RAIL_KEY, next ? '1' : '0');
+      } catch {
+        // Not persisting is survivable.
+      }
+      return next;
+    });
+  }
+
   const activeIdRef = useRef<string | null>(null);
   activeIdRef.current = activeId;
 
@@ -101,6 +143,9 @@ export default function Workspace({ userId, email }: Props) {
   function newProblem() {
     if (!window.confirm(t('capture.confirmNew'))) return;
     setHistoryOpen(false);
+    // The picker lives in the rail; clearing the problem without showing it
+    // would leave nowhere to put the next photo.
+    setRailOpen(true);
     setActiveId(null);
     setUploadError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -485,25 +530,6 @@ export default function Workspace({ userId, email }: Props) {
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent-fast/25 to-accent-fine/25 text-xs ring-1 ring-ink-700">
             ⌘
           </span>
-          {/* The drawer trigger takes the logo's place on a phone, where the
-              logo was decoration and the history was unreachable. */}
-          {submissions.length > 0 && (
-            <button
-              onClick={() => setHistoryOpen(true)}
-              aria-label={t('history.open')}
-              className="-ml-1 rounded-lg px-2 py-1.5 text-ink-300 transition hover:text-ink-100 lg:hidden"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path
-                  d="M2 4h12M2 8h12M2 12h12"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-          )}
-
           <h1 className="text-sm font-semibold tracking-tight">Coding Helper</h1>
 
           <span className="ml-auto hidden text-xs text-ink-600 sm:block">{email}</span>
@@ -527,9 +553,38 @@ export default function Workspace({ userId, email }: Props) {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1400px] gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-[320px_1fr]">
+      {/* ------------------------------------------------- rail handle -- */}
+      {/* Fixed to the left edge and vertically centred, so it is in the same
+          place no matter how far down the answer you have scrolled. Two
+          buttons rather than one: the rail is a column on a wide screen and a
+          drawer on a phone, and CSS picks which without a resize listener. */}
+      <button
+        onClick={toggleRail}
+        aria-expanded={railOpen}
+        aria-label={railOpen ? t('rail.collapse') : t('rail.expand')}
+        title={railOpen ? t('rail.collapse') : t('rail.expand')}
+        className="fixed left-0 top-1/2 z-30 hidden h-16 w-5 -translate-y-1/2 items-center justify-center rounded-r-lg border-y border-r border-ink-800 bg-ink-900/90 text-ink-500 backdrop-blur transition hover:w-6 hover:bg-ink-850 hover:text-ink-100 lg:flex"
+      >
+        <Chevron open={railOpen} />
+      </button>
+      <button
+        onClick={() => setHistoryOpen((v) => !v)}
+        aria-expanded={historyOpen}
+        aria-label={historyOpen ? t('history.close') : t('history.open')}
+        title={historyOpen ? t('history.close') : t('history.open')}
+        className="fixed left-0 top-1/2 z-40 flex h-16 w-5 -translate-y-1/2 items-center justify-center rounded-r-lg border-y border-r border-ink-800 bg-ink-900/90 text-ink-500 backdrop-blur transition hover:text-ink-100 lg:hidden"
+      >
+        <Chevron open={historyOpen} />
+      </button>
+
+      <div
+        className={[
+          'mx-auto grid max-w-[1400px] gap-4 px-4 py-4 sm:px-6 sm:py-6',
+          railOpen ? 'lg:grid-cols-[320px_1fr]' : 'lg:grid-cols-1',
+        ].join(' ')}
+      >
         {/* ------------------------------------------------------ left -- */}
-        <div className="space-y-4">
+        <div className={['space-y-4', railOpen ? '' : 'lg:hidden'].join(' ')}>
           <CaptureCard
             language={language}
             onLanguageChange={setLanguage}
@@ -543,7 +598,6 @@ export default function Workspace({ userId, email }: Props) {
                   }
                 : null
             }
-            onNewProblem={newProblem}
             busy={uploading}
             error={uploadError}
           />
@@ -577,6 +631,19 @@ export default function Workspace({ userId, email }: Props) {
                 </p>
               )}
             </div>
+
+            {/* Beside the title, because what it releases is the title. On a
+                phone it keeps its words; next to a thumbnail and a rerun
+                button, space is tight enough that it shrinks to "+". */}
+            {activeSubmission && (
+              <button
+                onClick={newProblem}
+                className="shrink-0 rounded-lg bg-accent-medium/15 px-2.5 py-1 text-[11px] font-semibold text-accent-medium ring-1 ring-accent-medium/40 transition hover:bg-accent-medium/25"
+                title={t('app.newProblem')}
+              >
+                + <span className="hidden sm:inline">{t('app.newProblem')}</span>
+              </button>
+            )}
 
             {imageUrls.length > 0 && (
               <button
