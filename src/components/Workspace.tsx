@@ -614,7 +614,7 @@ export default function Workspace({ userId, email }: Props) {
         {/* ----------------------------------------------------- right -- */}
         <div className="flex min-h-[70vh] flex-col gap-3">
           {/* problem header */}
-          <div className="flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-900/60 px-4 py-3 backdrop-blur">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink-800 bg-ink-900/60 px-4 py-3 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-ink-100">
                 {activeSubmission
@@ -632,16 +632,16 @@ export default function Workspace({ userId, email }: Props) {
               )}
             </div>
 
-            {/* Beside the title, because what it releases is the title. On a
-                phone it keeps its words; next to a thumbnail and a rerun
-                button, space is tight enough that it shrinks to "+". */}
+            {/* Beside the title, because what it releases is the title. A
+                phone has no room for it there next to a thumbnail and a rerun
+                button, so it wraps onto its own line at the width of the
+                picker buttons rather than shrinking to an unreadable "+". */}
             {activeSubmission && (
               <button
                 onClick={newProblem}
-                className="shrink-0 rounded-lg bg-accent-medium/15 px-2.5 py-1 text-[11px] font-semibold text-accent-medium ring-1 ring-accent-medium/40 transition hover:bg-accent-medium/25"
-                title={t('app.newProblem')}
+                className="order-last w-full shrink-0 rounded-xl bg-accent-medium/15 px-4 py-3 text-sm font-semibold text-accent-medium ring-1 ring-accent-medium/40 transition hover:bg-accent-medium/25 sm:order-none sm:w-auto sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-[11px]"
               >
-                + <span className="hidden sm:inline">{t('app.newProblem')}</span>
+                + {t('app.newProblem')}
               </button>
             )}
 
