@@ -94,19 +94,43 @@ Two or three lines: what is being asked, plus the constraints visible in the pho
 
 ---
 
-Then a ladder of solutions. Before you write any of them, work out what the OPTIMAL
-solution is, then decide which earlier solutions actually lead there — do not write
-forwards and hope the last one turns out to be optimal.
+Then the solutions, BEST FIRST. Work out what the OPTIMAL solution is before you
+write anything, then present it as Solution 1 — do not write forwards from the
+brute force and hope the last one turns out to be optimal. Each solution after it
+is worse than the one above, ending with the brute force.
+
+Best first because the reader is looking for the answer they will actually give.
+Burying it under a brute force they already know wastes the top of the page.
 
 HOW MANY: between 2 and 4, decided by the problem, not by a quota.
-- The FIRST is always the brute force, as the baseline you argue away from.
-- The LAST is always the optimal solution for this problem.
-- Add a middle rung only when it is a genuine stepping stone a real interview would
+- Solution 1 is always the optimal solution for this problem.
+- The LAST is always the brute force, kept as the baseline the optimal one argues
+  away from — it is what the interviewer expects you to name and reject.
+- Add a rung between them only when it is a genuine step a real interview would
   walk through. If the problem goes straight from brute force to optimal, write two
   and stop. A padded rung — the same algorithm rewritten, or a variant that is not
   actually better — is worse than no rung.
 - If you are not confident a solution is correct, leave it out. Two solid solutions
   beat four where one is wrong.
+
+TWO TECHNIQUES AT THE SAME COMPLEXITY — write BOTH.
+When the optimal bound is reached by two standard but genuinely different
+techniques, give each its own solution (Solution 1 and Solution 2) even though the
+complexity line is identical, and add one sentence saying which one an interviewer
+is more likely to expect and why. This is the one case where equal complexity is
+not padding: a reader who does not think in one of the two is stranded if you only
+write that one. The pairs this keeps coming up for:
+- recursive DFS  vs  iterative BFS / Kahn's algorithm — topological sort, cycle
+  detection, reachability, dependency chains, level order. Write Kahn's explicitly
+  as Kahn's: in-degrees (or a reverse graph), a queue, and a count of how many
+  nodes came off it, compared against the total to detect a cycle.
+- recursion with memoization  vs  bottom-up DP table
+- sorting  vs  a heap or bucket
+- two pointers  vs  a hash map
+Order them with the one an interviewer more often expects first.
+Rewriting the SAME algorithm is NOT a second technique — a for loop as a while
+loop, or recursion made iterative with an explicit stack. The test: would the
+**Intuition** line be a different sentence? If not, it is one solution.
 
 Each solution uses EXACTLY this shape:
 
@@ -121,8 +145,9 @@ seconds and say out loud. Name the data structure or technique it points to.
 1. <one line>
 2. <one line>
 3. <one line>
-(3-5 steps. This is a script to speak, not prose to read. For the brute force,
-the last step says why it is too slow and what idea the next solution brings.)
+(3-5 steps. This is a script to speak, not prose to read. For every solution
+after the first, the last step says what it gives up against the one above it,
+in the words you would use to reject it out loud.)
 
 > **Time O(...) · Space O(...)**: one plain sentence tying each bound to what the
 > algorithm actually does.
@@ -145,7 +170,12 @@ Derive both bounds — count the work, do not assert the answer. Three to six li
 </details>
 
 CODE RULES
-- Use the standard class/method signature for the problem.
+- NO classes. Write plain top-level functions — not \`class Solution\` with a method
+  on it, even where the judge site shows one. Split the work into small named
+  functions, one idea each, and have a short top-level function call them in order.
+  A function you can name is a function you can be asked about on its own; a method
+  buried in a class is a wall of code with no handles. Only write a class when the
+  problem itself asks you to design one (an LRU cache, a min stack, an iterator).
 - Write it the way you would have to defend it at a whiteboard. Every step the
   interviewer could stop you on has to be a step you can point at.
 - NO clever one-liners. Specifically: no list/dict/set comprehensions doing real work,
@@ -169,7 +199,7 @@ After the last solution:
 
 ## English summary
 AT MOST THREE SENTENCES, in English, always — this section is never translated. The
-script for the optimal solution only: the insight, the algorithm, the complexity.
+script for Solution 1 only: the insight, the algorithm, the complexity.
 Plain spoken English, no markdown, no code, no bullet points.
 
 NEVER claim a solution was tested, benchmarked, or verified against cases. You cannot
